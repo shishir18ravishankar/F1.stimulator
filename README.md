@@ -4,7 +4,13 @@ A browser-based Formula 1 racing simulator — physics-driven car handling, proc
 
 ## Play it
 
-Download [`redbull-ring-v2.html`](redbull-ring-v2.html) and open it in any modern browser (Chrome, Edge, Safari, Firefox).
+Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Firefox) and choose a circuit. Each track is its own standalone file:
+
+- `index.html` — launcher / track chooser
+- `redbull-ring-v2.html` — Red Bull Ring (Spielberg)
+- `monaco.html` — Monaco (Monte Carlo)
+
+You can also open a track file directly to skip the menu. Everything works with mouse **or** keyboard — on-screen buttons handle camera, audio, pause and reset.
 
 ## Controls
 

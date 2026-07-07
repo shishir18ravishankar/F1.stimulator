@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>F1 Simulator — Choose Track</title>
+<style>
+  :root{color-scheme:dark;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%,#16202e,#0a0d12 60%);
+    color:#dfe6ee;font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100%;padding:32px;gap:26px;text-align:center;
+  }
+  h1{font-size:34px;letter-spacing:3px;margin:0;color:#fff;}
+  h1 .f1{color:#e8332a;}
+  .sub{color:#8fa1b5;font-size:13px;margin-top:-14px;letter-spacing:1px;}
+  .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+  a.card{
+    text-decoration:none;color:inherit;display:block;width:300px;
+    background:rgba(16,22,32,.85);border:1.5px solid #2a3444;border-radius:14px;
+    padding:22px 22px 20px;transition:transform .12s,border-color .12s,box-shadow .12s;
+    outline:none;
+  }
+  a.card:hover,a.card:focus{
+    transform:translateY(-4px);border-color:#4a6b90;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  a.card.rbr:hover,a.card.rbr:focus{border-color:#e8332a;box-shadow:0 10px 30px rgba(232,51,42,.25);}
+  a.card.mco:hover,a.card.mco:focus{border-color:#c8a24a;box-shadow:0 10px 30px rgba(200,162,74,.22);}
+  .flag{font-size:30px;line-height:1;}
+  .name{font-size:21px;font-weight:700;color:#fff;margin:12px 0 2px;letter-spacing:1px;}
+  .loc{color:#8fa1b5;font-size:12px;margin-bottom:12px;}
+  svg{width:100%;height:96px;display:block;margin:6px 0 12px;}
+  .rbr svg path{stroke:#e8332a;}
+  .mco svg path{stroke:#c8a24a;}
+  svg path{fill:none;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;}
+  .stats{display:flex;justify-content:space-around;font-size:11px;color:#a9b6c4;border-top:1px solid #263040;padding-top:10px;}
+  .stats b{color:#dfe6ee;font-size:13px;display:block;}
+  .go{color:#7ee787;font-size:12px;margin-top:12px;font-weight:700;}
+  .hint{color:#67788c;font-size:12px;}
+</style>
+</head>
+<body>
+  <div>
+    <h1><span class="f1">F1</span> SIMULATOR</h1>
+    <div class="sub">choose your circuit</div>
+  </div>
+
+  <div class="cards">
+    <a class="card rbr" href="redbull-ring-v2.html">
+      <div class="flag">🇦🇹</div>
+      <div class="name">RED BULL RING</div>
+      <div class="loc">Spielberg, Austria</div>
+      <svg viewBox="0 0 260 120" aria-hidden="true">
+        <path d="M40 96 L120 78 L175 40 L150 30 L165 22 L205 34 L232 60 L205 84 L235 92 M40 96 L26 74 L60 40 L92 34 L112 52 L80 66 L120 78"/>
+      </svg>
+      <div class="stats"><div><b>4.318 km</b>10 turns</div><div><b>~1:05</b>lap</div><div><b>3</b>DRS zones</div></div>
+      <div class="go">▶ DRIVE</div>
+    </a>
+
+    <a class="card mco" href="monaco.html">
+      <div class="flag">🇲🇨</div>
+      <div class="name">MONACO</div>
+      <div class="loc">Monte Carlo</div>
+      <svg viewBox="0 0 260 120" aria-hidden="true">
+        <path d="M22 70 L34 44 L58 30 L70 40 L92 44 L150 34 L206 40 L226 66 L214 86 L188 92 L150 84 L120 92 L60 90 L30 96 L18 78 Z"/>
+      </svg>
+      <div class="stats"><div><b>3.337 km</b>19 turns</div><div><b>~1:12</b>lap</div><div><b>Tunnel</b>+ harbour</div></div>
+      <div class="go">▶ DRIVE</div>
+    </a>
+  </div>
+
+  <div class="hint">click a circuit &middot; or use &larr; &rarr; and <b>Enter</b></div>
+
+<script>
+  // keyboard navigation: arrows to move, Enter to open
+  const cards=[...document.querySelectorAll('a.card')];
+  let sel=0;
+  cards[0].focus();
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'){sel=(sel+1)%cards.length;cards[sel].focus();e.preventDefault();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){sel=(sel-1+cards.length)%cards.length;cards[sel].focus();e.preventDefault();}
+    else if(e.key==='Enter'){cards[sel].click();}
+  });
+</script>
+</body>
+</html>

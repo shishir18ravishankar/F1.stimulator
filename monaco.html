@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Red Bull Ring — F1 Sim</title>
+<title>Monaco — F1 Sim</title>
 <style>
   html,body{margin:0;padding:0;background:#0a0d12;overflow:hidden;height:100%;}
   canvas{display:block;}
@@ -22,7 +22,7 @@
 <body>
 <canvas id="c"></canvas>
 <div id="help">
-  <h1>RED BULL RING &mdash; Spielberg &middot; v2.1</h1>
+  <h1>MONACO <h1>RED BULL RING &mdash; Spielberg &middot; v2.1</h1>mdash; Monte Carlo</h1>
   <div class="sub">stability assists &middot; chase / T-cam / cockpit &middot; full scenery</div>
   <div>
     <b>&uarr;/W</b> throttle &nbsp; <b>&darr;/S</b> brake (hold at rest = reverse)<br>
@@ -96,25 +96,6 @@ const GEAR_KMH=[0,100,135,170,205,240,275,312];
 // =========================================================================
 // TRACK + ENVIRONMENT BUILD
 // =========================================================================
-// Digitized from the official F1 track map (clockwise, y-down = map view).
-// T1 Niki Lauda (right, uphill) -> long climb (DRS) -> T3 Remus hairpin ->
-// back straight (DRS, speed trap) -> T4 Schlossgold hairpin (highest point)
-// -> downhill T5 -> T6/T7 left U (the only lefts) -> T8 kink -> Sector 3 run
-// -> fast T9 Rindt -> T10 onto the pit straight (DRS).
-const RBR_CTRL=[
-  [890,290,11],[820,358,10],[742,420,9.5],[664,478,9.5],[620,510,10], // pit straight (SW)
-  [598,527,11],[577,530,12],[558,518,13.5],                          // T1 Niki Lauda
-  [480,462,20],[400,402,28],[322,340,38],[250,285,47],[185,248,54],  // the climb (T2 kink)
-  [152,235,57],[133,225,58],[124,210,59],[130,196,59.5],[146,187,60],// T3 Remus hairpin
-  [240,152,61.5],[340,118,63],[440,90,64.5],[520,68,66],             // back straight
-  [562,57,67],[588,56,68],[605,68,68],[608,88,67.5],[596,106,66.5],  // T4 Schlossgold (highest)
-  [556,146,62],[515,185,57],[474,222,52],                            // downhill, T5
-  [440,258,47],[420,292,43],[426,322,40],[450,342,38],[487,352,37],  // T6/T7 left U (Rauch)
-  [522,344,36],[545,320,35.5],
-  [554,290,35],[572,264,34],[630,240,31],[700,208,28],[770,170,25],  // T8 kink, Sector 3 run
-  [830,133,21],[862,120,19],[884,124,18],[900,140,17],               // T9 Rindt (fast right)
-  [922,175,15],[938,206,13],[948,224,12],[945,241,11.5],[930,255,11],// T10 onto the straight
-];
 let HALF_W=6.5; const KERB_W=1.7; // road half-width is set per track
 
 function crPoint(p0,p1,p2,p3,t){
@@ -161,12 +142,44 @@ function chainTrack(segs,e0){
   if(Math.hypot(pts[n-1][0]-pts[0][0],pts[n-1][1]-pts[0][1])<15)pts.pop();
   return {pts,tags};
 }
+// Circuit de Monaco as an explicit, guaranteed-simple (non-self-intersecting)
+// loop of control points [x,y,elev], driven order. Two harbour straights (pit
+// straight y~460 and the pool road y~520) run parallel and are joined at the
+// ends by the hill loop (Ste Devote up, Casino across the top, hairpin + tunnel
+// down) and by the Rascasse/Noghes turnaround. Harbour = low (~3), Casino high
+// (~41, ~44 m real). Verified 0 self-crossings.
+// Circuit de Monaco traced from the official F1 layout map: an elongated (2:1)
+// shape. Pit straight + climb on the LEFT to Turn 1 (Sainte Devote, the peak),
+// Beau Rivage down-right, Massenet/Casino (highest ~44 m), long run right to the
+// Grand Hotel Hairpin BULB on the far right (Mirabeau/Hairpin/Portier), tunnel
+// curving down, back left along the harbour (Nouvelle Chicane), up to Tabac, then
+// the Swimming Pool esses + Rascasse + Noghes down the left back to the start.
+// The infield is the harbour (marina). Verified 0 self-crossings.
+const MONACO_CTRL=[
+  [140,300,5],[205,205,12],[285,128,18],             // pit straight + climb (LEFT)
+  [352,98,22],[450,134,30],[548,194,37],             // T1 Sainte Devote (peak) + Beau Rivage
+  [652,252,41],[740,298,43],                         // T2, T3 Massenet
+  [802,232,44],[912,206,41],                         // T4 Casino + top run (highest)
+  [1016,196,35],[1082,230,30],                       // T5 Mirabeau Haute
+  [1104,286,26],[1074,330,23],[1026,340,22],         // T6 Grand Hotel Hairpin (U-turn)
+  [1046,388,18],[1112,362,14],[1144,322,11],         // T7 Mirabeau Bas, T8 Portier
+  [1122,402,9],[1030,454,6],                         // tunnel (curving down)
+  [892,472,4],[750,432,4],                           // T9 tunnel exit (bottom)
+  [620,372,3],[560,350,3],                           // T10-T11 Nouvelle Chicane
+  [432,232,4],[376,192,5],                           // up to Tabac (T12)
+  [312,248,4],[298,300,3],                           // T13-T14 Swimming Pool
+  [236,384,3],[190,408,3],                           // T15-T16
+  [160,448,3],[178,500,3],                           // T17 La Rascasse
+  [132,540,4],[52,500,4],[78,398,5],                 // T18-T19 Noghes -> back to start
+];
 const TRACKS={
-  rbr:{id:'rbr',tag:'RBR',name:'RED BULL RING',halfW:6.5,lap:4318,ctrl:RBR_CTRL,
-    sf:[742,420],style:'alpine',walled:false,traps:true,
-    zoneAnchors:[[[470,455],[195,254]],[[175,175],[508,72]]],
-    paved:[[577,530],[884,124],[941,232]],
-    ground:[56,106,48]},
+  monaco:{id:'mco',tag:'MCO',name:'MONACO',halfW:5.2,lap:3337,ctrl:MONACO_CTRL,
+    sf:[140,300],style:'city',walled:true,traps:false,
+    zoneAnchors:[],paved:[],
+    tunnel:[[1122,402],[950,468]],      // Portier into the tunnel -> exit at the water
+    quay:[[750,432],[300,300]],         // (unused now; harbour is the infield)
+    tabac:[376,192],                    // a grandstand anchor near Tabac
+    ground:[120,118,110]},
 };
 
 function buildTrack(def){
@@ -274,7 +287,7 @@ function buildTrack(def){
     id:def.id,tag:def.tag,name:def.name,style:def.style,
     walled:!!def.walled,ground:def.ground,quay,tabacI};
 }
-let track=buildTrack(TRACKS.rbr);
+let track=buildTrack(TRACKS.monaco);
 function inDRSZone(s){
   if(s>track.drsA||s<track.drsB)return true;   // wrap-around main straight
   for(const z of track.zones)if(s>z[0]&&s<z[1])return true;
@@ -1550,8 +1563,8 @@ function buildMinimap(){
 buildMinimap();
 
 // ---- track switching (press N to cycle) ----
-const TRACK_IDS=['rbr'];   // Red Bull Ring only (Monaco is monaco.html)
-let curTrackKey='rbr';
+const TRACK_IDS=['monaco'];   // Monaco only (Red Bull Ring is redbull-ring-v2.html)
+let curTrackKey='monaco';
 function switchTrack(id){
   const def=TRACKS[id];if(!def)return;
   curTrackKey=id;
