@@ -105,7 +105,9 @@ function chainTrack(segs,e0){
 }
 
 function buildTrack(def){
-  const CTRL=def.ctrl,LAP_TARGET=def.lap;
+  // control points come either as an explicit ctrl array or as chained
+  // segment data (length/turn/radius/elevation) closed via chainTrack
+  const CTRL=def.ctrl||chainTrack(def.segs,def.e0||0).pts,LAP_TARGET=def.lap;
   HALF_W=def.halfW;
   const n=CTRL.length,raw=[];
   for(let i=0;i<n;i++){
@@ -166,7 +168,8 @@ function buildTrack(def){
     return bi;
   }
   // extra DRS zones from def anchors (zone 1 = the wrap-around pit straight)
-  const zones=(def.zoneAnchors||[]).map(([a,b])=>[nearIdx(a[0],a[1])*ds,nearIdx(b[0],b[1])*ds]);
+  const zones=(def.zonesS||[]).map(z=>z.slice()) // extra DRS zones given directly in meters
+    .concat((def.zoneAnchors||[]).map(([a,b])=>[nearIdx(a[0],a[1])*ds,nearIdx(b[0],b[1])*ds]));
   const tunnel=def.tunnel?[nearIdx(def.tunnel[0][0],def.tunnel[0][1])*ds,
                           nearIdx(def.tunnel[1][0],def.tunnel[1][1])*ds]:null;
   const quay=def.quay?[nearIdx(def.quay[0][0],def.quay[0][1])*ds,
@@ -206,10 +209,11 @@ function buildTrack(def){
   return {n:N,ds,length:LAP_TARGET,X:TX,Y:TY,E:TE,NX,NY,TH,K,kerb,
     LX:LXa,LY:LYa,RX:RXa,RY:RYa,drsA,drsB,zones,tunnel,nearIdx,
     sBrake,CPS,spans,gravelMask,trapType,minx,miny,maxx,maxy,
-    id:def.id,tag:def.tag,name:def.name,style:def.style,
+    id:def.id,tag:def.tag,name:def.name,style:def.style,scn:def.scenery||{},scMap:sc,
     walled:!!def.walled,ground:def.ground,quay,tabacI};
 }
 const TRACK_IDS=Object.keys(TRACKS);let curTrackKey=TRACK_IDS[0];
+if(TRACKS[curTrackKey].pMod)Object.assign(P,TRACKS[curTrackKey].pMod); // per-track physics tune
 let track=buildTrack(TRACKS[curTrackKey]);
 function inDRSZone(s){
   if(s>track.drsA||s<track.drsB)return true;   // wrap-around main straight
@@ -370,23 +374,43 @@ function buildScenery(T){
     stand(2,outSign(2),8,55);
     stand(T.tabacI,outSign(T.tabacI),8,45);
   }else{
-    // ---------- RED BULL RING: alpine forest + circuit furniture ----------
+    // ---------- open-country tracks: trees + circuit furniture ----------
+    // per-track character comes from def.scenery: treeDens (0..1 or default
+    // RBR windows), treeNear/treeSpread (m from track), treeH/treeHVar/treeW
+    // (bush vs tall pine), stands ([s,...] extra grandstands), banking (Monza)
+    const scn=T.scn||{};
     const trackDist=(x,y)=>{let d=1e18;
       for(let i=0;i<N;i+=4){const dx=x-T.X[i],dy=y-T.Y[i];d=Math.min(d,dx*dx+dy*dy);}return Math.sqrt(d);};
     for(let i=0;i<N;i+=8)for(const side of[-1,1]){
       const s=i*T.ds,onPit=s>T.length-360||s<260;
-      const dens=onPit?0.10:(s>300&&s<2400?0.6:0.3);
+      const dens=onPit?0.10:(scn.treeDens!==undefined?scn.treeDens:(s>300&&s<2400?0.6:0.3));
       if(rnd()>dens)continue;
-      const off=16+rnd()*46;
+      const off=(scn.treeNear!==undefined?scn.treeNear:16)+rnd()*(scn.treeSpread!==undefined?scn.treeSpread:46);
       const x=T.X[i]+T.NX[i]*side*off,y=T.Y[i]+T.NY[i]*side*off;
       if(trackDist(x,y)<13)continue;
-      trees.push({x,y,e:T.E[i]-0.3,h:6+rnd()*6,w:2.4+rnd()*2.2,shade:0.8+rnd()*0.35});
+      trees.push({x,y,e:T.E[i]-0.3,h:(scn.treeH!==undefined?scn.treeH:6)+rnd()*(scn.treeHVar!==undefined?scn.treeHVar:6),
+        w:(scn.treeW!==undefined?scn.treeW:2.4)+rnd()*2.2,shade:0.8+rnd()*0.35});
     }
     stand(Math.round((T.length-150)/T.ds),-1,9,80);
     stand(Math.round(120/T.ds),-1,9,70);
     stand(Math.round((T.sBrake+70)/T.ds),-1,10,60);
-    stand(T.nearIdx(168,242),-1,9,55);
-    stand(T.nearIdx(545,60),-1,9,55);
+    if(scn.stands)for(const ss of scn.stands)stand(Math.round(ss/T.ds),-1,9,60);
+    if(T.id==='rbr'){stand(T.nearIdx(168,242),-1,9,55);stand(T.nearIdx(545,60),-1,9,55);}
+    if(scn.banking){ // decorative banked oval in the background (not driveable)
+      const bx=scn.banking[0]*T.scMap,by=scn.banking[1]*T.scMap,br=scn.banking[2]*T.scMap;
+      const be=T.E[T.nearIdx(scn.banking[0],scn.banking[1])];
+      for(let k=0;k<28;k++){
+        const a0=k/28*TAU,a1=(k+0.6)/28*TAU;
+        const p=(a,rr)=>[bx+Math.cos(a)*rr,by+Math.sin(a)*rr];
+        const[ix0,iy0]=p(a0,br-7),[ox0,oy0]=p(a0,br+7);
+        const[ix1,iy1]=p(a1,br-7),[ox1,oy1]=p(a1,br+7);
+        const x=(ix0+ox1)/2,y=(iy0+oy1)/2;
+        if(trackDist(x,y)<HALF_W+16)continue; // never lay banking over the road
+        structs.push({x,y,br:22,faces:[
+          {pts:[[ix0,iy0,be],[ix1,iy1,be],[ox1,oy1,be+7],[ox0,oy0,be+7]],col:'rgb(170,166,158)'},
+          {pts:[[ox0,oy0,be+7],[ox1,oy1,be+7],[ox1,oy1,be+7.8],[ox0,oy0,be+7.8]],col:'rgb(120,118,112)'}]});
+      }
+    }
     for(let s=T.length-300;s<T.length-20;s+=27){
       const i=Math.round(s/T.ds)%N;
       const off=HALF_W+2.6;
@@ -407,6 +431,7 @@ function buildScenery(T){
     board(Math.round((T.drsA+10)/T.ds),[31,143,74],1.8);
     for(const z of T.zones)board(Math.round(z[0]/T.ds)+3,[31,143,74],1.8);
     board(Math.round((T.sBrake-100)/T.ds),[220,215,205]);
+    if(T.id==='rbr'){
     board(T.nearIdx(205,258),[220,215,205]);
     board(T.nearIdx(512,70),[220,215,205]);
     board(T.nearIdx(498,78),[196,44,150],1.4);
@@ -430,6 +455,7 @@ function buildScenery(T){
         worldBox(px(-3.1),py(-3.1),e+2.6,yaw,0.25,1.5,0.25,[160,24,20],f);
       });
     }
+    } // end RBR-specific furniture
   }
   // start/finish checker (both tracks)
   const checker=[];

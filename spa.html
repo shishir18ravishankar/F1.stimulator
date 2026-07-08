@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spa-Francorchamps — F1 Sim</title>
+<style>
+  html,body{margin:0;padding:0;background:#0a0d12;overflow:hidden;height:100%;}
+  canvas{display:block;}
+  #help{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:rgba(10,14,20,.93);border:1px solid #2a3444;border-radius:10px;
+    color:#dfe6ee;font:14px/1.55 ui-monospace,Menlo,Consolas,monospace;
+    padding:22px 30px;max-width:580px;z-index:10;
+  }
+  #help h1{font-size:18px;margin:0 0 4px;color:#fff;}
+  #help .sub{color:#8fa1b5;margin-bottom:14px;font-size:12px;}
+  #help b{color:#ffcf5e;}
+  #help .phys{color:#9fb2c6;font-size:12px;border-top:1px solid #263040;margin-top:12px;padding-top:10px;}
+  #help .go{color:#7ee787;margin-top:12px;font-weight:bold;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="help">
+  <h1>SPA-FRANCORCHAMPS &mdash; Belgium</h1>
+  <div class="sub">stability assists &middot; chase / T-cam / cockpit &middot; full scenery</div>
+  <div>
+    <b>&uarr;/W</b> throttle &nbsp; <b>&darr;/S</b> brake (hold at rest = reverse)<br>
+    <b>&larr;&rarr;/A D</b> steer &nbsp; <b>SHIFT</b> DRS (Kemmel + pit straight)<br>
+    <b>C</b> camera (chase &rarr; T-cam &rarr; cockpit) &nbsp; <b>ESC</b> track select<br>
+    <b>M</b> audio &nbsp; <b>R</b> reset &nbsp; <b>T</b> telemetry &nbsp; <b>P</b> pause
+  </div>
+  <div class="phys">
+    The longest lap of the year, carved through the Ardennes forest with ~95 m
+    of elevation: La Source hairpin, the plunge to Eau Rouge and the climb up
+    Raidillon, flat-out along Kemmel to Les Combes, then down through Rivage
+    and Pouhon to Stavelot (the lowest point), Blanchimont and the Bus Stop.
+  </div>
+  <div class="go">Press any key to drive</div>
+</div>
+<script src="tracks/spa.js"></script>
+<script src="engine.js"></script>
+</body>
+</html>
