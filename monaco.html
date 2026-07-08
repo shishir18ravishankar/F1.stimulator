@@ -162,7 +162,8 @@ const MONACO_CTRL=[
   [802,232,44],[912,206,41],                         // T4 Casino + top run (highest)
   [1016,196,35],[1082,230,30],                       // T5 Mirabeau Haute
   [1104,286,26],[1074,330,23],[1026,340,22],         // T6 Grand Hotel Hairpin (U-turn)
-  [1046,388,18],[1112,362,14],[1144,322,11],         // T7 Mirabeau Bas, T8 Portier
+  [1046,388,18],[1112,362,14],                       // T7 Mirabeau Bas
+  [1138,349,12],[1147,359,11],[1147,373,11],[1138,383,10], // T8 Portier (round arc onto the tunnel)
   [1122,402,9],[1030,454,6],                         // tunnel (curving down)
   [892,472,4],[750,432,4],                           // T9 tunnel exit (bottom)
   [620,372,3],[560,350,3],                           // T10-T11 Nouvelle Chicane
@@ -537,12 +538,14 @@ const car={
   alphaF:0,alphaR:0,FzF:0,FzR:0,delta:0,
   drsOpen:false,drsFlap:0,reverse:false,revT:0,lapValid:true,nanEvents:0,
   rollV:0,pitchV:0,bounce:0,spinF:0,spinR:0,
+  kerbShake:0,susF:0,susVelF:0,susR:0,susVelR:0,fastT:-10,
 };
 function placeCarAtS(s){
   const i=Math.round(s/track.ds)%track.n;
   car.x=track.X[i];car.y=track.Y[i];car.heading=track.TH[i];
   car.vx=0;car.vy=0;car.r=0;car.axS=0;car.ayS=0;car.tIdx=i;car.prevS=i*track.ds;car.s=car.prevS;
   car.steer=0;car.throttle=0;car.brake=0;car.slideF=0;car.slideR=0;
+  car.kerbShake=0;car.susF=0;car.susVelF=0;car.susR=0;car.susVelR=0;car.bounce=0;
   car.reverse=false;car.elev=track.E[i];
   camSnap=true; // jump the camera behind the car instead of flying across the map
 }
@@ -629,6 +632,7 @@ function setKey(e,v){
     if(k==='n'&&TRACK_IDS.length>1)actTrack();
     if(k==='m')actAudio();
     if(k==='h'){helpShown=true;helpEl.style.display='block';}
+    if(e.key==='Escape')window.location.href='index.html'; // back to track select
   }
   if(used)e.preventDefault();
 }
@@ -670,8 +674,9 @@ function step(dt,surf){
   car.steer+=clamp(st-car.steer,-sRate*dt,sRate*dt);
   car.throttle+=clamp((key.up&&!car.reverse?1:0)-car.throttle,-8*dt,(spd<25?2.2:4.5)*dt);
   car.brake+=clamp((key.down&&!car.reverse?1:0)-car.brake,-9*dt,4.5*dt);
-  if(!car.reverse){
-    if(key.down&&Math.abs(car.vx)<0.5)car.revT+=dt;else car.revT=0;
+  if(Math.abs(car.vx)>15)car.fastT=simT; // reverse only from an intentional standstill
+  if(!car.reverse){                      // hold, never mid-corner during a hard stop
+    if(key.down&&Math.abs(car.vx)<0.5&&simT-car.fastT>1)car.revT+=dt;else car.revT=0;
     if(car.revT>0.35){car.reverse=true;car.revT=0;}
   }else if(key.up||car.vx>0.5){car.reverse=false;}
 
@@ -750,7 +755,6 @@ function step(dt,surf){
     car.ayS+=(car.vx*car.r-car.ayS)*Math.min(1,dt*7);
     car.slideF=tf.slide;car.slideR=tr.slide;
     car.utilF=tf.util;car.utilR=tr.util;
-    if(q.kerb)car.r+=(Math.random()-0.5)*sp*0.008*dt;
   }else{
     const rk=car.vx*Math.tan(delta)/P.wheelbase;
     car.r+=(rk-car.r)*Math.min(1,dt*10);
@@ -765,10 +769,20 @@ function step(dt,surf){
     car.slideF=car.slideR=0;car.utilF={x:0,y:0};car.utilR={x:0,y:0};
     car.alphaF=0;car.alphaR=0;
   }
-  // visual body dynamics
+  // visual body dynamics — kerb/gravel rumble is render-only: kerbShake ramps
+  // with speed on rough surfaces and drives per-axle critically-damped springs;
+  // it must never feed car.r / car.vx / car.vy
+  const shakeT=(q.kerb||q.gravel)&&sp>4?clamp(sp/60,0,1):0;
+  car.kerbShake+=(shakeT-car.kerbShake)*Math.min(1,dt*(shakeT>car.kerbShake?16:7));
+  const rough=(q.gravel?0.022:q.kerb?0.034:0)*car.kerbShake;
+  const wRum=Math.min(90,26+sp*1.1);        // rumble freq, below the 120Hz sim Nyquist
+  const K_SUS=900,D_SUS=2*Math.sqrt(K_SUS); // critical damping: settles ~200ms, no overshoot
+  const tgtF=rough*Math.sin(simT*wRum),tgtR=rough*Math.sin(simT*wRum+2.2);
+  car.susVelF+=(K_SUS*(tgtF-car.susF)-D_SUS*car.susVelF)*dt;car.susF+=car.susVelF*dt;
+  car.susVelR+=(K_SUS*(tgtR-car.susR)-D_SUS*car.susVelR)*dt;car.susR+=car.susVelR*dt;
   car.pitchV+=(clamp(-car.axS*0.0035,-0.045,0.045)-car.pitchV)*Math.min(1,dt*8);
   car.rollV+=(clamp(car.ayS*0.0045,-0.05,0.05)-car.rollV)*Math.min(1,dt*8);
-  car.bounce=(car.kerb||car.gravel)&&sp>8?(Math.random()-0.5)*0.05:car.bounce*Math.max(0,1-dt*12);
+  car.bounce=car.susF+car.susR;
   // wheel rotation state: fronts freeze when locked, rears overspin on power
   const spinRate=car.vx/0.35;
   car.spinF+=(car.brake>0.4&&car.slideF>0.35?spinRate*0.08:spinRate)*dt;
@@ -787,10 +801,19 @@ function step(dt,surf){
       const side=Math.sign(wq.lat);
       const push=Math.abs(wq.lat)-limit;
       car.x-=track.NX[wq.idx]*side*push;car.y-=track.NY[wq.idx]*side*push;
-      // remove the outward-normal component of velocity + scrub along the wall
-      const vn=car.vx*(-sn)*0+0; // (body frame) kill lateral toward the wall
-      if(Math.sign(car.vy)===side)car.vy*=-0.15;   // bounce back off the barrier
-      car.vx*=0.86;car.r*=0.4;                      // scrub speed, kill yaw
+      // impact-angle-aware response: kill/bounce only the velocity component
+      // along the wall normal; tangential scrub + yaw kill scale with severity
+      const ch=Math.cos(car.heading),sh=Math.sin(car.heading);
+      let wx=car.vx*ch-car.vy*sh,wy=car.vx*sh+car.vy*ch;
+      const nx=track.NX[wq.idx]*side,ny=track.NY[wq.idx]*side; // outward normal
+      const vn=wx*nx+wy*ny;
+      if(vn>0){
+        const sev=Math.min(1,vn/Math.max(6,Math.hypot(wx,wy)||1)); // 0 glancing .. 1 head-on
+        wx-=1.15*vn*nx;wy-=1.15*vn*ny;                 // remove normal comp + 15% bounce
+        const keep=Math.exp(-(1.5+25*sev)*dt);         // tangential scrub, dt-scaled
+        wx*=keep;wy*=keep;car.r*=1-0.6*sev;
+        car.vx=wx*ch+wy*sh;car.vy=-wx*sh+wy*ch;
+      }
       car.wallHit=simT;
     }
   }
@@ -1036,7 +1059,8 @@ const WHEELS=[ // F1 spec: equal diameter front/rear, wide rears standing proud
 })();
 function drawCarMesh(){
   const ch=Math.cos(car.heading),sh=Math.sin(car.heading);
-  const cpr=Math.cos(car.pitchV),spr=Math.sin(car.pitchV);
+  const pitchTot=car.pitchV+(car.susR-car.susF)*0.30;
+  const cpr=Math.cos(pitchTot),spr=Math.sin(pitchTot);
   const crl=Math.cos(car.rollV),srl=Math.sin(car.rollV);
   const bnc=car.bounce,light=[0.42,0.80,0.30];
   function toWorld(lx,ly,lz,isWheel,steer){
@@ -1181,7 +1205,7 @@ function render(fdt){
   let shx=0,shy=0;
   if(camMode>=1){
     const base=camMode===2?3.2:1.6;
-    const mag=Math.pow(sp/90,2)*base*(car.kerb?2.4:1)*((car.grass||car.gravel)?2.8:1);
+    const mag=base*car.kerbShake*((car.grass||car.gravel)?2.4:1.4);
     shx=(Math.random()-0.5)*mag;shy=(Math.random()-0.5)*mag;
   }
   CX=W/2+shx;CY=H*0.5+shy;
@@ -1695,7 +1719,8 @@ function drawHUD(sp){
 }
 // clickable on-screen buttons (top-centre). Also registers hit-boxes for the mouse.
 function drawButtons(){
-  const defs=[['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset]];
+  const defs=[['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset],
+    ['MENU',()=>{window.location.href='index.html';}]];
   if(TRACK_IDS.length>1)defs.push(['TRACK',actTrack]);
   const bw=64,bh=26,gap=6,total=defs.length*bw+(defs.length-1)*gap;
   let x0=W/2-total/2,y0=12;
