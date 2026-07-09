@@ -35,5 +35,6 @@ const TRACKS={
     scenery:{treeDens:0.45,treeNear:18,treeSpread:50,treeH:11,treeHVar:6,treeW:1.8,
       stands:[150,5600],
       banking:[994,681,161]}, // old high-speed oval ruins in the infield park
-    pMod:{CdA:1.30,ClA:2.55,drsDrag:0.86}}, // Temple of Speed: low drag, low downforce
+    pMod:{CdA:1.30,ClA:2.55,drsDrag:0.86,mu:1.56}, // low drag/downforce, a bit less grip on the brakes
+    atmo:{skyTop:'#7fa8d4',skyMid:'#c9d8e0',skyBot:'#f2ead8'}}, // warm Lombardy light
 };

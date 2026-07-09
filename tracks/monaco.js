@@ -36,5 +36,6 @@ const TRACKS={
     tunnel:[[1122,402],[950,468]],      // Portier into the tunnel -> exit at the water
     quay:[[750,432],[300,300]],         // (unused now; harbour is the infield)
     tabac:[376,192],                    // a grandstand anchor near Tabac
+    pMod:{steerMax:0.38,steerFade:22,kerbAggr:1.15}, // tight, twitchy street-circuit steering
     ground:[120,118,110]},
 };

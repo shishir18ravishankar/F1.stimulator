@@ -41,6 +41,7 @@ const TRACKS={
     zonesS:[[1320,2010],[4050,4770]],   // Wellington + Hangar straights
     zoneAnchors:[],paved:[],
     ground:[88,126,64],
+    pMod:{ClA:3.45,yawDamp:3600},       // planted at high speed through Maggotts-Becketts
     // open, grassy, flat English countryside: sparse low trees, big stands
     scenery:{treeDens:0.06,treeNear:30,treeSpread:70,treeH:4.5,treeHVar:3.5,
       stands:[2100,2930,3380,4800]}},

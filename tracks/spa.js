@@ -42,6 +42,8 @@ const TRACKS={
     zonesS:[[1400,2650]],              // Kemmel straight
     zoneAnchors:[],paved:[],
     ground:[42,84,40],
+    pMod:{gripVar:0.035},               // forest track: subtle patchy grip
+    atmo:{fog:[172,184,190],skyTop:'#7595bc',skyMid:'#b1c4d4',skyBot:'#dbe4e8'}, // Ardennes haze
     // dense Ardennes forest walls of tall conifers close to the road
     scenery:{treeDens:0.8,treeNear:14,treeSpread:55,treeH:9,treeHVar:7}},
 };

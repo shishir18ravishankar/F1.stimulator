@@ -51,6 +51,8 @@ const P={
   assistAlign:0.32,              // 0..1 front-slip relaxation (auto countersteer)
   assistTC:0.5,                  // drive cut per unit rear slide beyond 0.2
   assistABS:0.35,                // front brake cut when fronts lock
+  kerbAggr:1,                    // per-track: kerb rumble/drag aggression
+  gripVar:0,                     // per-track: spatial grip variation amplitude (Spa)
 };
 const GEAR_KMH=[0,100,135,170,205,240,275,312];
 
@@ -73,35 +75,57 @@ function crPoint(p0,p1,p2,p3,t){
 // turn angle / radius / elevation). Used for Monaco: the corner sequence is
 // well documented, so chaining it reproduces the circuit's shape.
 function chainTrack(segs,e0){
-  // heading closure: scale all turns so total turning = ±360° (a clean loop),
-  // then distribute the residual xy gap linearly. Guarantees a closed circuit.
+  // heading closure: scale all turns so total turning = ±360° (a clean loop).
+  // xy closure: least-squares stretch/shrink of the STRAIGHT segments (arcs
+  // stay exact — dragging points linearly crushed tight arcs into kinks);
+  // any small residual is then distributed linearly as before.
   let tot=0;for(const s of segs)if(s.turn)tot+=s.turn;
   const tScale=Math.abs(tot)>1?(tot>=0?360:-360)/tot:1;
-  const pts=[[500,500,e0]];const tags={};
-  let x=500,y=500,h=0,elev=e0;
-  for(const sg of segs){
-    if(sg.tag)tags[sg.tag]=pts.length;
-    const eA=elev,eB=sg.e!==undefined?sg.e:elev;elev=eB;
-    if(sg.st){
-      const n=Math.max(1,Math.round(sg.st/45));
-      for(let k=1;k<=n;k++){
-        x+=Math.cos(h)*sg.st/n;y+=Math.sin(h)*sg.st/n;
-        pts.push([x,y,eA+(eB-eA)*k/n]);
+  const adj=new Float64Array(segs.length);
+  const build=()=>{
+    const pts=[[500,500,e0]],tags={},dirs=[];
+    let x=500,y=500,h=0,elev=e0;
+    segs.forEach((sg,si)=>{
+      if(sg.tag)tags[sg.tag]=pts.length;
+      const eA=elev,eB=sg.e!==undefined?sg.e:elev;elev=eB;
+      if(sg.st){
+        const L=sg.st+adj[si];
+        dirs.push([si,Math.cos(h),Math.sin(h)]);
+        const n=Math.max(1,Math.round(L/45));
+        for(let k=1;k<=n;k++){
+          x+=Math.cos(h)*L/n;y+=Math.sin(h)*L/n;
+          pts.push([x,y,eA+(eB-eA)*k/n]);
+        }
+      }else{
+        const a=sg.turn*tScale*Math.PI/180;
+        const n=Math.max(3,Math.round(Math.abs(sg.turn)/12));
+        for(let k=1;k<=n;k++){
+          const da=a/n,chord=2*sg.r*Math.sin(Math.abs(da)/2);
+          h+=da/2;x+=Math.cos(h)*chord;y+=Math.sin(h)*chord;h+=da/2;
+          pts.push([x,y,eA+(eB-eA)*k/n]);
+        }
       }
-    }else{
-      const a=sg.turn*tScale*Math.PI/180;
-      const n=Math.max(3,Math.round(Math.abs(sg.turn)/12));
-      for(let k=1;k<=n;k++){
-        const da=a/n,chord=2*sg.r*Math.sin(Math.abs(da)/2);
-        h+=da/2;x+=Math.cos(h)*chord;y+=Math.sin(h)*chord;h+=da/2;
-        pts.push([x,y,eA+(eB-eA)*k/n]);
-      }
+    });
+    return {pts,tags,dirs,x,y};
+  };
+  let r=build();
+  {// length-weighted least squares: delta_i = L_i*(u_i·w), solve (Σ L u uᵀ)w = gap.
+    // Long straights absorb the closure gap; short ramps/links barely move.
+    const gx=500-r.x,gy=500-r.y;
+    let a=0,b=0,c=0;for(const[si,ux,uy]of r.dirs){const L=segs[si].st;a+=L*ux*ux;b+=L*ux*uy;c+=L*uy*uy;}
+    const det=a*c-b*b;
+    if(Math.abs(det)>1e-6){
+      const wx=(c*gx-b*gy)/det,wy=(a*gy-b*gx)/det;
+      for(const[si,ux,uy]of r.dirs)
+        adj[si]=clamp(segs[si].st*(ux*wx+uy*wy),-segs[si].st*0.35,segs[si].st*0.35);
+      r=build();
     }
   }
-  const gx=pts[0][0]-x,gy=pts[0][1]-y,n=pts.length;
+  const pts=r.pts,n=pts.length;
+  const gx=pts[0][0]-r.x,gy=pts[0][1]-r.y;
   for(let i=1;i<n;i++){pts[i][0]+=gx*i/n;pts[i][1]+=gy*i/n;}
   if(Math.hypot(pts[n-1][0]-pts[0][0],pts[n-1][1]-pts[0][1])<15)pts.pop();
-  return {pts,tags};
+  return {pts,tags:r.tags};
 }
 
 function buildTrack(def){
@@ -318,7 +342,9 @@ function buildScenery(T){
     for(let i=0;i<N;i++)if(Math.abs(T.K[i])>0.012)for(let o=-12;o<=12;o++)noBuild[(i+o+N)%N]=1;
     // city buildings — a continuous facade on the OUTSIDE of the loop, set well
     // back (camera never enters them), capped height, tiling so no overlap/pop.
-    const pal=[[224,206,170],[210,170,140],[228,220,206],[200,150,120],[214,196,158],[190,196,204]];
+    const scnC=T.scn||{};
+    const pal=scnC.palette||[[224,206,170],[210,170,140],[228,220,206],[200,150,120],[214,196,158],[190,196,204]];
+    const winCol=scnC.windowCol||[120,124,134];
     const bStep=7, FRONT=HALF_W+KERB_W+16;         // building line, well back from the road
     for(let i=0;i<N;i+=bStep){
       if(noBuild[i])continue;                      // skip tight corners (dilated)
@@ -334,7 +360,7 @@ function buildScenery(T){
         addStruct(x,y,f=>{
           worldBox(x,y,base,T.TH[i],w,h,dep,col,f);
           worldBox(x,y,base+h,T.TH[i],w*0.96,0.6,dep*0.96,[74,74,80],f);   // roof cap
-          worldBox(x-T.NX[i]*side*(dep*0.5),y-T.NY[i]*side*(dep*0.5),base+3,T.TH[i],w*0.8,h*0.55,0.12,[120,124,134],f); // windows
+          worldBox(x-T.NX[i]*side*(dep*0.5),y-T.NY[i]*side*(dep*0.5),base+3,T.TH[i],w*0.8,h*0.55,0.12,winCol,f); // windows
         });
       }
     }
@@ -457,6 +483,31 @@ function buildScenery(T){
     }
     } // end RBR-specific furniture
   }
+  // ---- generic parameterized extras (any style) ----
+  const glows=[];
+  if(T.scn&&T.scn.floodlights){ // pylons every N meters, alternating sides
+    const stp=Math.max(40,T.scn.floodlights);
+    for(let s=0;s<T.length-30;s+=stp){
+      const i=Math.round(s/T.ds)%N,side=(Math.round(s/stp)&1)?1:-1;
+      const off=HALF_W+KERB_W+2.4;
+      const x=T.X[i]+T.NX[i]*side*off,y=T.Y[i]+T.NY[i]*side*off,e=T.E[i];
+      const hx=x-T.NX[i]*side*1.1,hy=y-T.NY[i]*side*1.1;
+      addStruct(x,y,f=>{
+        worldBox(x,y,e,T.TH[i],0.35,12,0.35,[70,74,84],f);       // pole
+        worldBox(hx,hy,e+12,T.TH[i],2.8,0.9,1.5,[238,240,226],f); // lamp head
+      });
+      glows.push({x:hx,y:hy,e:e+12.7});
+    }
+  }
+  if(T.scn&&T.scn.tower){ // landmark observation tower [ctrlX,ctrlY,height]
+    const[tx,ty,th]=T.scn.tower;
+    const x=tx*T.scMap,y=ty*T.scMap,e=T.E[T.nearIdx(tx,ty)];
+    addStruct(x,y,f=>{
+      worldBox(x,y,e,0.5,2.4,th,2.4,[196,60,52],f);            // shaft
+      worldBox(x,y,e+th,0.5,11,2.4,11,[222,224,230],f);        // observation deck
+      worldBox(x,y,e+th+2.4,0.5,0.5,7,0.5,[160,160,166],f);    // antenna
+    });
+  }
   // start/finish checker (both tracks)
   const checker=[];
   for(let row=0;row<2;row++)for(let col=0;col<8;col++){
@@ -471,7 +522,7 @@ function buildScenery(T){
   }
   const clouds=[];
   for(let i=0;i<9;i++)clouds.push({a:rnd()*TAU,h:0.10+rnd()*0.14,s:0.5+rnd()*0.9});
-  return {trees,structs,checker,clouds,water};
+  return {trees,structs,checker,clouds,water,glows};
 }
 let scenery=buildScenery(track);
 
@@ -648,7 +699,9 @@ function step(dt,surf){
   const FzF=Math.max(150,P.mass*9.81*P.weightFront+DFf-trans);
   const FzR=Math.max(150,P.mass*9.81*(1-P.weightFront)+DFr+trans);
   car.FzF=FzF;car.FzR=FzR;
-  const grip=P.mu*q.mu;
+  let grip=P.mu*q.mu;
+  // per-track grip patches (deterministic in s, ~75/250 m wavelengths)
+  if(P.gripVar)grip*=1+P.gripVar*Math.sin(car.s*0.043)*Math.sin(car.s*0.0127+2.1);
   const capF=grip*P.muFront*FzF,capR=grip*P.muRear*FzR;
 
   const dir=car.vx>=0?1:-1;
@@ -679,7 +732,7 @@ function step(dt,surf){
     const roll=P.rollC*(FzF+FzR)*dir
       +(q.grass?(500+7*sp*sp)*dir:0)    // quadratic: grass is undrivable at speed
       +(q.gravel?(900+12*sp*sp)*dir:0)  // gravel bleeds speed hard
-      +(q.kerb?60*dir:0);
+      +(q.kerb?60*P.kerbAggr*dir:0);
     const Fx=FxF+tr.Fx-drag*dir-roll;
     const Fy=FyF+tr.Fy;
     const axB=Fx/P.mass,ayB=Fy/P.mass;
@@ -722,7 +775,7 @@ function step(dt,surf){
   // it must never feed car.r / car.vx / car.vy
   const shakeT=(q.kerb||q.gravel)&&sp>4?clamp(sp/60,0,1):0;
   car.kerbShake+=(shakeT-car.kerbShake)*Math.min(1,dt*(shakeT>car.kerbShake?16:7));
-  const rough=(q.gravel?0.022:q.kerb?0.034:0)*car.kerbShake;
+  const rough=(q.gravel?0.022:q.kerb?0.034*P.kerbAggr:0)*car.kerbShake;
   const wRum=Math.min(90,26+sp*1.1);        // rumble freq, below the 120Hz sim Nyquist
   const K_SUS=900,D_SUS=2*Math.sqrt(K_SUS); // critical damping: settles ~200ms, no overshoot
   const tgtF=rough*Math.sin(simT*wRum),tgtR=rough*Math.sin(simT*wRum+2.2);
@@ -869,7 +922,10 @@ function resize(){
 addEventListener('resize',resize);resize();
 
 const NEAR=0.45,FAR=780;
-const FOG=[188,200,206],ASPHALT=[52,54,58];
+// per-track atmosphere (def.atmo): sky gradient, fog tint, night mode
+const ATMO=Object.assign({skyTop:'#6f9fd0',skyMid:'#b8d0e4',skyBot:'#e6edf2',
+  fog:[188,200,206],sun:true,night:false},TRACKS[Object.keys(TRACKS)[0]].atmo||{});
+const FOG=ATMO.fog,ASPHALT=[52,54,58];
 let _cs=1,_sn=0,_cp=1,_sp=0;
 function camSpace(wx,wy,we){
   const dx=wx-cam.gx,dy=wy-cam.gy,dh=we-cam.h;
@@ -1164,10 +1220,26 @@ function render(fdt){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   const horizonY=CY-FL*Math.tan(cam.pitch);
   const sky=ctx.createLinearGradient(0,0,0,Math.max(1,horizonY));
-  sky.addColorStop(0,'#6f9fd0');sky.addColorStop(0.7,'#b8d0e4');sky.addColorStop(1,'#e6edf2');
+  sky.addColorStop(0,ATMO.skyTop);sky.addColorStop(0.7,ATMO.skyMid);sky.addColorStop(1,ATMO.skyBot);
   ctx.fillStyle=sky;ctx.fillRect(0,0,W,Math.max(0,horizonY));
-  // sun
-  {
+  // sun (day) / moon + stars (night)
+  if(ATMO.night){
+    const sa=wrapAngle(2.35-cam.yaw);
+    if(Math.abs(sa)<1.2){
+      const mx=CX+sa*FL,my=horizonY-0.30*FL;
+      ctx.fillStyle='rgba(235,238,245,0.9)';
+      ctx.beginPath();ctx.arc(mx,my,11,0,TAU);ctx.fill();
+      ctx.fillStyle=ATMO.skyTop;ctx.beginPath();ctx.arc(mx-5,my-3,9,0,TAU);ctx.fill();
+    }
+    const srnd=mulberry(7);
+    ctx.fillStyle='rgba(255,255,255,0.65)';
+    for(let k=0;k<90;k++){
+      const a=wrapAngle(srnd()*TAU-cam.yaw),h=0.06+srnd()*0.42;
+      if(Math.abs(a)>1.4)continue;
+      const sx2=CX+a*FL,sy2=horizonY-h*FL;
+      if(sy2>0)ctx.fillRect(sx2,sy2,1.6,1.6);
+    }
+  }else if(ATMO.sun!==false){
     const sa=wrapAngle(2.35-cam.yaw);
     if(Math.abs(sa)<1.2){
       const sx=CX+sa*FL,sy=horizonY-0.22*FL;
@@ -1177,7 +1249,7 @@ function render(fdt){
     }
   }
   // clouds
-  for(const cl of scenery.clouds){
+  if(!ATMO.night)for(const cl of scenery.clouds){
     const a=wrapAngle(cl.a-cam.yaw);
     if(Math.abs(a)>1.4)continue;
     const cx2=CX+a*FL,cy2=horizonY-cl.h*FL;
@@ -1198,13 +1270,25 @@ function render(fdt){
     ctx.lineTo(W,horizonY+2);ctx.closePath();ctx.fill();
   };
   if(track.style==='city'){
-    ridge(0.055,1.3,0.4,'#9fb0c0',0.06);
-    // blocky skyline silhouette
-    ctx.fillStyle='#a9b4c2';
+    ridge(0.055,1.3,0.4,ATMO.night?'#101827':'#9fb0c0',0.06);
+    // blocky skyline silhouette (night: dark towers with lit windows + glow)
+    ctx.fillStyle=ATMO.night?'#161f33':'#a9b4c2';
     for(let x=0;x<W;x+=26){
       const a=cam.yaw+(x-CX)/FL;
       const hpx=FL*(0.03+0.05*Math.abs(Math.sin(a*5.3+x)));
       ctx.fillRect(x,horizonY-hpx,24,hpx+2);
+      if(ATMO.night){
+        ctx.fillStyle='rgba(255,214,130,0.75)';
+        const wr=mulberry((x*7+13)|0);
+        for(let k=0;k<6;k++){const wx=x+3+wr()*18,wy=horizonY-hpx+3+wr()*(hpx-6);
+          if(wy<horizonY-2)ctx.fillRect(wx,wy,2,2.6);}
+        ctx.fillStyle='#161f33';
+      }
+    }
+    if(ATMO.night){ // skyline glow wash above the rooftops
+      const gl=ctx.createLinearGradient(0,horizonY-0.1*FL,0,horizonY);
+      gl.addColorStop(0,'rgba(90,110,170,0)');gl.addColorStop(1,'rgba(120,140,200,0.20)');
+      ctx.fillStyle=gl;ctx.fillRect(0,horizonY-0.1*FL,W,0.1*FL);
     }
   }else{
     ridge(0.045,1.6,0.6,'#8fa5b5',0.055);
@@ -1224,7 +1308,8 @@ function render(fdt){
     const rx=w.rx||w.r,ry=w.ry||w.r,poly=[];
     for(let k=0;k<20;k++){const a=k/20*TAU;poly.push([w.cx+Math.cos(a)*rx,w.cy+Math.sin(a)*ry,w.e]);}
     const pp=projectPoly(poly);
-    if(pp){const dz=camSpace(w.cx,w.cy,w.e)[2];fillPoly(pp,fogMix([30,98,160],Math.min(0.32,Math.pow(dz/FAR,1.5))));}
+    if(pp){const dz=camSpace(w.cx,w.cy,w.e)[2];
+      fillPoly(pp,fogMix((track.scn&&track.scn.waterCol)||[30,98,160],Math.min(0.32,Math.pow(dz/FAR,1.5))));}
   }
 
   // ---- world list: road segs, trees, structures ----
@@ -1281,6 +1366,20 @@ function render(fdt){
     const sq=projectPoly(shq);
     if(sq)fillPoly(sq,'rgba(0,0,0,0.38)');
     drawCarMesh();
+  }
+  // floodlight glow sprites (night tracks)
+  if(scenery.glows&&scenery.glows.length){
+    ctx.globalCompositeOperation='lighter';
+    for(const g of scenery.glows){
+      const c=camSpace(g.x,g.y,g.e);
+      if(c[2]<NEAR||c[2]>520)continue;
+      const sx=CX+c[0]/c[2]*FL,sy=CY-c[1]/c[2]*FL;
+      const rr=Math.min(70,FL*1.1/c[2]);
+      const gr=ctx.createRadialGradient(sx,sy,0,sx,sy,rr);
+      gr.addColorStop(0,'rgba(255,246,214,0.55)');gr.addColorStop(1,'rgba(255,246,214,0)');
+      ctx.fillStyle=gr;ctx.fillRect(sx-rr,sy-rr,rr*2,rr*2);
+    }
+    ctx.globalCompositeOperation='source-over';
   }
   // particles
   for(const p of parts){
