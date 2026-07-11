@@ -888,8 +888,10 @@ function updateCamera(fdt){
   const t=[Math.cos(car.heading),Math.sin(car.heading)];
   let tgx,tgy,th,tpitch,posK,yawK,flT;
   if(camMode===0){
-    tgx=car.x-t[0]*10.2;tgy=car.y-t[1]*10.2;th=car.elev+3.3;
-    tpitch=Math.atan2(th-(car.elev+0.7),14.5);
+    // pulled back + raised: whole car (wing, tyres, halo) sits in the bottom
+    // third of the frame with the track ahead, like a modern F1 game chase cam
+    tgx=car.x-t[0]*13.0;tgy=car.y-t[1]*13.0;th=car.elev+4.0;
+    tpitch=0.035;
     posK=1-Math.exp(-6*fdt);yawK=1-Math.exp(-4.2*fdt);flT=0.92;
   }else if(camMode===1){ // T-cam: above the airbox, like TV onboard
     tgx=car.x-t[0]*1.45;tgy=car.y-t[1]*1.45;th=car.elev+2.35;
