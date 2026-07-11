@@ -14,6 +14,8 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `monza.html` — Monza (Italy)
 - `singapore.html` — Singapore Marina Bay (night race)
 - `cota.html` — Circuit of the Americas (Austin, Texas)
+- `melbourne.html` — Albert Park, Melbourne (Australia)
+- `shanghai.html` — Shanghai International Circuit (China)
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 
