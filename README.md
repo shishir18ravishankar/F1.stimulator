@@ -26,6 +26,8 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `zandvoort.html` — Circuit Zandvoort (Netherlands)
 - `madrid.html` — Madring, Madrid (new for 2026)
 - `baku.html` — Baku City Circuit (Azerbaijan)
+- `mexico.html` — Autódromo Hermanos Rodríguez (Mexico City)
+- `interlagos.html` — Autódromo José Carlos Pace (São Paulo)
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 

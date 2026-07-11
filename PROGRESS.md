@@ -28,8 +28,8 @@ builds, minimap + HUD render).
 | 10 | Zandvoort | done | done | done | done | yes |
 | 11 | Madrid (Madring) | done | done | done | done | yes |
 | 12 | Baku | done | done | done | done | yes |
-| 13 | Mexico City | — | — | — | — | — |
-| 14 | Interlagos | — | — | — | — | — |
+| 13 | Mexico City | done | done | done | done | yes |
+| 14 | Interlagos | done | done | done | done | yes |
 | 15 | Las Vegas | — | — | — | — | — |
 | 16 | Lusail (Qatar) | — | — | — | — | — |
 | 17 | Yas Marina (Abu Dhabi) | — | — | — | — | — |
@@ -112,3 +112,11 @@ builds, minimap + HUD render).
   infield "water" primitive is recoloured park-green to read as the
   Governor's Garden. Castle section narrowness is flavour (help text), the
   driveable width stays uniform (engine limitation).
+- **Mexico City**: the altitude is modelled physically - pMod rho 0.785
+  (real ~0.78 kg/m3 at 2,285 m) cuts drag AND downforce ~35%, with max-wing
+  ClA on top, exactly the real trade-off. Foro Sol rendered with the
+  decorative bowl primitive around the stadium section. Real 3rd DRS zone
+  omitted (no matching straight in this trace) - 2 zones instead.
+- **Interlagos**: full ~30 m amphitheatre profile including the Subida dos
+  Boxes climb; 800 m altitude gets rho 1.09. Corner names all real
+  (Senna S, Sol, Ferradura, Pinheirinho, Bico de Pato, Mergulho, Juncao).
