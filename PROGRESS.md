@@ -30,9 +30,9 @@ builds, minimap + HUD render).
 | 12 | Baku | done | done | done | done | yes |
 | 13 | Mexico City | done | done | done | done | yes |
 | 14 | Interlagos | done | done | done | done | yes |
-| 15 | Las Vegas | — | — | — | — | — |
-| 16 | Lusail (Qatar) | — | — | — | — | — |
-| 17 | Yas Marina (Abu Dhabi) | — | — | — | — | — |
+| 15 | Las Vegas | done | done | done | done | yes |
+| 16 | Lusail (Qatar) | done | done | done | done | yes |
+| 17 | Yas Marina (Abu Dhabi) | done | done | done | done | yes |
 
 ## Research ledger (facts encoded per track)
 
@@ -120,3 +120,18 @@ builds, minimap + HUD render).
 - **Interlagos**: full ~30 m amphitheatre profile including the Subida dos
   Boxes climb; 800 m altitude gets rho 1.09. Corner names all real
   (Senna S, Sol, Ferradura, Pinheirinho, Bico de Pato, Mergulho, Juncao).
+- **Las Vegas**: cold-track physics (mu 1.48, skinny wings) per the real
+  November night races; the Sphere gets the round decorative-bowl primitive
+  by the T5-T9 wrap. City night render with neon window palette.
+- **Lusail**: single DRS zone (main straight) as raced; MotoGP-flow physics
+  (high load, high yawDamp) with sandy off-line gripVar.
+- **Yas Marina**: 2021-revised layout. Twilight rendered as a violet-orange
+  night-mode sky (the engine has no true day-to-night transition); the
+  W Hotel approximated with the landmark-tower primitive over the marina.
+
+## ALL 17 TRACKS COMPLETE
+
+Every track validated (no self-intersections except Suzuka's intentional
+bridge crossover, all min radii and leg clearances within engine limits,
+all DRS zones on verified straights) and smoke-tested headless in Chromium.
+The launcher now carries the full 24-circuit 2026 calendar.
