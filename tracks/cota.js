@@ -1,54 +1,53 @@
-// Circuit of the Americas — 5.513 km, 20 corners, COUNTER-clockwise
-// (left-hand-heavy). Defining feature: the ~40 m climb from the grid to the
-// blind T1 hairpin on the crest, steeper at the top than Spa's Raidillon,
-// then the Silverstone-style esses (T3-6), the T11 hairpin into a ~1 km back
-// straight, the Hockenheim-style stadium section (T13-15) and a triple-apex
-// right (T16-18). Landmark: the ~70 m observation tower.
-// Chained corner data closed by chainTrack; units ~1.9 m.
-const COTA_SEGS=[
-  {st:150,e:6},                      // pit straight, starting the climb
-  {st:74,e:18},                      // ramp steepens
-  {st:40,e:33},                      // final pitch to the crest (~20%)
-  {turn:-130,r:16,e:36},             // T1 The Tower (blind left on the crest)
-  {st:105,e:26},                     // falls away downhill
-  {turn:50,r:60,e:20},               // T2 (right, downhill — Senna S)
-  {st:24,e:16},
-  {turn:-57,r:80,e:14},              // T3 esses (left)  — Maggotts/Becketts
-  {turn:40,r:75,e:13},               // T4 (right)          character, mirrored
-  {turn:-51,r:70,e:12},              // T5 (left)
-  {turn:60,r:80,e:12},               // T6 (right, esses exit)
-  {st:60,e:10},
-  {turn:-31,r:40,e:9},               // T7 (left, tightening)
-  {turn:82,r:35,e:8},                // T8 (right)
-  {turn:-56,r:28,e:7},               // T9 (left)
-  {st:109,e:6},
-  {turn:-52,r:45,e:5},               // T10 (blind left)
-  {st:150,e:4},
-  {turn:-145,r:15,e:4},              // T11 hairpin (furthest point from the pits)
-  {st:699,e:0},                      // ~1 km back straight (DRS)
-  {turn:-114,r:22,e:1},              // T12 (heavy braking left)
-  {st:55,e:2},
-  {turn:-55,r:35,e:2},               // T13 stadium section (left)  — Hockenheim
-  {turn:50,r:30,e:3},                // T14 (right)                    character
-  {turn:-84,r:25,e:3},               // T15 (left, stadium exit)
-  {st:79,e:4},
-  {turn:68,r:55,e:6},                // T16 (right — triple-apex entry)
-  {turn:53,r:50,e:7},                // T17 (right)
-  {turn:45,r:55,e:6},                // T18 (right, exit)
-  {st:113,e:4},
-  {turn:-60,r:45,e:3},               // T19 (left)
-  {st:52,e:2},
-  {turn:-99,r:30,e:1},               // T20 (left onto the pit straight)
-  {st:60,e:0},
+// Circuit of the Americas - 5.513 km, 20 corners, COUNTER-clockwise.
+// Centerline traced from the real circuit's GPS geometry (north = up, driven
+// order from the S/F line), so the plan view matches the official track map.
+// Points are [x,y,elev]: the ~33 m climb to the blind T1 hairpin, downhill
+// esses, the T11 hairpin into the ~1.1 km back straight, the stadium section
+// and the T16-18 triple apex. Landmark: the observation tower.
+const COTA_CTRL=[
+  [261,528,2],[306,564,11.9],[351,600,21.7], // S/F, climbing from the grid
+  [395,629,30.8],
+  [408,633,33],[413,628,32.5],[414,622,32], // T1 The Tower (blind hairpin on the crest)
+  [399,577,28.4],[384,532,24.7],[384,517,23.5],
+  [388,500,22.2],
+  [404,477,20],[449,449,18.5],[495,420,17], // T2 downhill
+  [507,405,16.5],[517,378,15.6],[526,367,15.2],
+  [565,346,14],[571,336,13.9],[580,295,13.5], // T3-6 esses
+  [587,284,13.3],[598,273,13.2],[622,259,12.9],
+  [641,257,12.7],[706,286,12.1],[711,286,12],
+  [737,268,11.1],[761,239,10.1],[779,231,9.5],
+  [786,231,9.3],[800,236,8.9],[813,254,8.3],
+  [822,260,8],[873,248,7.1],[925,237,6.3], // T7-9
+  [932,232,6.1],
+  [972,183,5.1],[1012,134,4.6],[1052,85,4.2], // T10
+  [1060,71,4],
+  [1060,64,4],[1055,61,3.9],[1048,60,3.8], // T11 hairpin (furthest point)
+  [961,86,2.3],[874,113,0.9],
+  [798,131,0.6],[752,140,0.4],[706,150,0.2], // ~1.1 km back straight (DRS)
+  [651,158,0.1],[596,167,0.3],[509,177,0.6],
+  [422,187,1],
+  [419,194,1],[467,257,1.6],[483,282,1.9], // T12
+  [483,292,2],[473,299,2],[438,298,2.3], // T13-15 stadium section
+  [430,291,2.3],[415,259,2.6],[393,237,2.8],
+  [368,233,3],[362,235,3],[359,241,3.1],
+  [360,245,3.2],[385,290,4.1],
+  [411,335,5],[412,350,5.2],[405,373,5.7], // T16-18 triple-apex right
+  [396,390,6],[353,412,5.4],[341,414,5.3],
+  [320,411,5],[299,404,4.7],[282,393,4.5],
+  [244,338,3.7],[218,305,3.2],
+  [205,299,3],[179,306,2.7],[125,330,1.9], // T19
+  [70,354,1.2],[64,358,1.1],
+  [60,366,1],[67,375,1],[131,426,0.7], // T20 onto the pit straight
+  [196,477,0.9],
 ];
 const TRACKS={
-  cota:{id:'cota',tag:'COTA',name:'CIRCUIT OF THE AMERICAS',halfW:6.5,lap:5513,segs:COTA_SEGS,e0:0,
-    sf:[500,500],style:'flat',walled:false,traps:true,
-    zonesS:[[2600,3950]],              // back straight
+  cota:{id:'cota',tag:'COTA',name:'CIRCUIT OF THE AMERICAS',halfW:6.5,lap:5513,ctrl:COTA_CTRL,
+    sf:[261,528],style:'flat',walled:false,traps:true,
+    zonesS:[[2330,3420]],              // back straight
     zoneAnchors:[],paved:[],
     ground:[112,114,60],               // sun-dried Texas grass
     atmo:{skyTop:'#6f9fd6',skyMid:'#c2d2de',skyBot:'#f0e6cf'},
     scenery:{treeDens:0.10,treeNear:28,treeSpread:65,treeH:4,treeHVar:3,
-      stands:[700,4150,4500],
-      tower:[317,192,68]}},            // observation tower by the stadium section
+      stands:[500,3700,4300],
+      tower:[330,300,68]}},            // observation tower by the stadium section
 };
