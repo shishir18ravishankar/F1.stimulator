@@ -1,45 +1,52 @@
-// Spa-Francorchamps — 7.004 km, the longest lap on the calendar, and by far
-// the biggest elevation change (~95 m here between Les Combes and Stavelot).
-// Ardennes forest either side; Eau Rouge/Raidillon compression-then-climb is
-// the defining feature. Chained corner data closed by chainTrack; units are
-// ~2.3 m each, elevations in meters and deliberately dramatic.
-const SPA_SEGS=[
-  {st:120,e:42},                     // S/F straight
-  {turn:175,r:14,e:41},              // T1 La Source (tight hairpin)
-  {st:60,e:38},
-  {st:260,e:32},                     // steep downhill run to Eau Rouge
-  {turn:-35,r:55,e:31},              // Eau Rouge (left flick, compression)
-  {turn:48,r:50,e:44},               // Raidillon (steep uphill right, ~40 m climb)
-  {turn:-14,r:90,e:52},              // crest left kink
-  {st:600,e:98},                     // Kemmel Straight (DRS, 300+ km/h, climbing)
-  {turn:-62,r:42,e:103},             // T5 Les Combes (left — highest point)
-  {turn:60,r:38,e:103},              // T6 Les Combes (right)
-  {st:70,e:98},
-  {turn:50,r:55,e:90},               // T7 Malmedy (right, downhill begins)
-  {st:100,e:80},
-  {turn:160,r:26,e:70},              // T8 Rivage (long tight downhill right)
-  {st:70,e:62},
-  {turn:-32,r:70,e:56},              // T9 (left)
-  {st:90,e:47},
-  {turn:-80,r:75,e:36},              // T10 Pouhon (fast double-apex left sweeper)
-  {st:110,e:30},
-  {turn:-42,r:42,e:27},              // T11 Campus (left)
-  {turn:50,r:38,e:24},               // T12 Fagnes (right)
-  {st:55,e:22},
-  {turn:95,r:50,e:16},               // T13/14 Stavelot (right — lowest point)
-  {st:120,e:12},                     // valley floor
-  {turn:20,r:200,e:16},              // long forest run, gentle right, climbing
-  {st:180,e:22},
-  {turn:-45,r:170,e:28},             // T18 Blanchimont (fast sweeping left, near flat)
-  {st:150,e:32},
-  {turn:65,r:16,e:34},               // T19 Bus Stop (right)
-  {turn:-70,r:16,e:35},              // Bus Stop (left)
-  {st:90,e:40},                      // climb to the line
+// Spa-Francorchamps - 7.004 km, the longest lap on the calendar, clockwise.
+// Centerline traced from the real circuit's GPS geometry (north = up, driven
+// order, starting at the S/F line before La Source), so the plan view matches
+// the official track map. Points are [x,y,elev]; the elevation profile keeps
+// the real drama: down to Eau Rouge, the Raidillon/Kemmel climb to Les Combes
+// (~103 m), the long descent to Stavelot (~12 m) and the Blanchimont climb.
+const SPA_CTRL=[
+  [246,166,42],[219,118,41.6],[191,70,41.1], // S/F
+  [191,66,41.1],[193,62,41],
+  [198,60,41],[266,92,38.3],[287,105,37], // T1 La Source
+  [329,138,34.1],
+  [379,196,34.2],[428,255,45.6],[463,278,50.3], // T2-4 Eau Rouge/Raidillon (compression, then the climb)
+  [470,286,51.5],[481,307,54.1],
+  [491,351,58.5],[527,410,65.1],[563,469,71.8], // crest
+  [575,496,74.7],
+  [598,574,81.1],[620,651,87.4],[642,729,93.7], // Kemmel Straight (DRS)
+  [665,806,100],[677,856,102.3],[676,863,102.6],
+  [672,869,103],[654,883,101],[648,895,99.7], // T5-6 Les Combes (highest point)
+  [659,949,94.8],[657,964,93.4],
+  [652,971,92.5],[590,1014,84],[529,1057,75.2], // T7 Malmedy
+  [522,1060,74.3],[507,1058,72.5],[501,1053,71.6],
+  [494,1040,69.9],[496,1026,68.3],[506,1015,66.5], // T8 Rivage
+  [557,983,59.6],
+  [565,972,58],[566,957,56.7],[552,914,52.9], // T9
+  [538,871,49.1],[527,806,43.7],[515,741,39.2],
+  [511,733,38.5],[499,719,37.3],
+  [482,710,36],[442,707,33.6],[430,708,32.9], // T10 Pouhon
+  [409,716,31.5],[400,722,30.9],[390,731,30.1],
+  [377,754,29.6],[347,827,28.3],
+  [317,899,27],[301,911,26.3],[284,914,25.7], // T11 Campus
+  [276,912,25.4],[249,898,24.3],
+  [240,896,23.9],[222,900,23],[214,905,22.5], // T12 Fagnes
+  [204,919,21.6],[181,956,19.3],[157,993,17],
+  [152,997,16.7],
+  [140,1002,16],[125,998,15.6],[75,961,14], // T13-14 Stavelot
+  [62,941,13.4],[60,924,12.9],[61,913,12.7], // T15 Paul Frere (lowest point ahead)
+  [75,876,12.4],[98,839,12.2],[147,789,12],
+  [165,775,12.9],[212,750,15.2],[259,725,17.4],
+  [291,700,19.1],[307,679,20.3],[318,659,21.5],
+  [349,588,25.9],
+  [352,565,27.1],[350,553,27.8],[330,502,29.4], // T16-17 Blanchimont
+  [310,450,30.9],[303,417,31.9],[299,386,32.4],
+  [296,315,33.6],[302,311,33.7],
+  [321,311,34],[325,304,34.4],[286,235,37.8], // T18-19 Bus Stop
 ];
 const TRACKS={
-  spa:{id:'spa',tag:'SPA',name:'SPA-FRANCORCHAMPS',halfW:6.0,lap:7004,segs:SPA_SEGS,e0:42,
-    sf:[500,500],style:'forest',walled:false,traps:true,
-    zonesS:[[1400,2650]],              // Kemmel straight
+  spa:{id:'spa',tag:'SPA',name:'SPA-FRANCORCHAMPS',halfW:6.0,lap:7004,ctrl:SPA_CTRL,
+    sf:[246,166],style:'forest',walled:false,traps:true,
+    zonesS:[[1180,2120]],              // Raidillon exit + Kemmel straight
     zoneAnchors:[],paved:[],
     ground:[42,84,40],
     pMod:{gripVar:0.035},               // forest track: subtle patchy grip

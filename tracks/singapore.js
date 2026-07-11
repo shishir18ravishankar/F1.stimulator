@@ -1,50 +1,44 @@
-// Singapore Marina Bay — 4.928 km, 19 corners, ANTI-clockwise, night race.
-// Narrow, bumpy, walled street circuit with almost no breathing room between
-// corners; three real straights (pit, Raffles Blvd, the 2023-rebuilt ~398 m
-// section). The whole identity is the night setting: dark sky, floodlight
-// pylons the whole way round, lit skyline, dark harbour water.
-// Chained corner data closed by chainTrack; units ~1.7 m, elevation ~flat.
-const SGP_SEGS=[
-  {st:420,e:5},                      // pit straight (DRS)
-  {turn:-70,r:35,e:5},               // T1 Sheares (left)
-  {st:30},
-  {turn:75,r:25,e:5},                // T2 (right)
-  {turn:-75,r:22,e:5},               // T3 (tight left onto Republic Blvd)
-  {st:220,e:5},
-  {turn:12,r:120,e:5},               // T4 (flat right kink)
-  {turn:-25,r:90,e:5},               // T5 (left kink)
-  {st:170,e:5},                      // Raffles Boulevard (DRS)
-  {turn:-10,r:150,e:5},              // T6 (kink)
-  {st:160,e:5},
-  {turn:-88,r:20,e:5},               // T7 Memorial (left 90)
-  {st:60,e:5},
-  {turn:90,r:18,e:5},                // T8 (right 90)
-  {st:90,e:5},
-  {turn:-40,r:45,e:5},               // T9 (left)
-  {st:120,e:5},
-  {turn:-70,r:16,e:5},               // T10 (single-apex left — old Singapore Sling)
-  {st:70,e:5},
-  {turn:-30,r:40,e:6},               // T11 (left toward Anderson Bridge)
-  {st:50,e:7},
-  {turn:85,r:20,e:7},                // T12 (right, over the bridge)
-  {st:40,e:6},
-  {turn:-120,r:14,e:5},              // T13 Fullerton hairpin (left)
-  {st:150,e:5},
-  {turn:90,r:18,e:5},                // T14 (right 90)
-  {turn:-12,r:120,e:5},              // T15 (kink)
-  {st:230,e:5},                      // 2023-rebuilt ~398 m straight (DRS)
-  {turn:-85,r:18,e:5},               // T16 (left 90)
-  {st:60,e:5},
-  {turn:-85,r:18,e:5},               // T17 (left 90)
-  {st:80,e:5},
-  {turn:-45,r:30,e:5},               // T18 (left)
-  {turn:55,r:40,e:5},                // T19 (right onto the pit straight)
-  {st:120,e:5},
+// Singapore Marina Bay - 4.928 km, 19 corners, ANTI-clockwise, night race,
+// 2023-revised layout. Centerline traced from the real circuit's GPS geometry
+// (north = up, driven order from the S/F line), so the plan view matches the
+// official track map. Narrow, walled street circuit; the identity is the night
+// setting: floodlights, lit skyline, dark harbour water. Points are [x,y,elev].
+const SGP_CTRL=[
+  [1038,306,5],[1026,206,5],[1014,106,5], // S/F pit straight (DRS)
+  [1010,100,5],[1001,96,5],[984,98,5], // T1 Sheares
+  [970,94,5],[947,80,5],[932,61,5],
+  [918,60,5],[909,69,5],[902,84,5], // T2-3
+  [899,138,5],[901,152,5],[933,237,5],
+  [940,275,5],[940,314,5],
+  [934,327,5],[923,334,5],[900,342,5], // T5 onto Raffles Blvd
+  [816,337,5],[731,332,5],
+  [646,327,5],[626,323,5],[596,312,5], // Raffles Boulevard (DRS)
+  [497,256,5],
+  [399,199,5],[393,201,5],[387,211,5], // T7 Memorial
+  [355,268,5],
+  [323,326,5],[312,324,5],[248,257,5], // T8
+  [220,238,5],[206,241,5],[192,254,5], // T9
+  [148,333,5],[104,411,5],
+  [60,490,5],[62,512,5],[67,521,5], // T10
+  [93,542,5],[106,550,5],
+  [128,557,5],[130,563,5],[123,588,5], // T11-12 Anderson Bridge
+  [129,608,5],[160,640,5],[197,671,5],
+  [203,684,5],
+  [223,707,5],[236,706,5],[245,696,5], // T13 Fullerton hairpin
+  [265,597,5.6],[284,498,7],[304,400,5.2],
+  [316,361,5],[328,352,5],
+  [344,351,5],[397,397,5],[450,444,5], // T14
+  [468,452,5],[509,460,5],
+  [608,465,5],[708,470,5], // 2023-rebuilt straight (DRS)
+  [807,476,5],[810,500,5],[815,514,5], // T16
+  [829,525,5],[937,538,5],[1019,542,5],
+  [1024,540,5],[1053,496,5],[1060,478,5], // T18-19 onto the pit straight
+  [1049,392,5],
 ];
 const TRACKS={
-  sgp:{id:'sgp',tag:'SGP',name:'SINGAPORE',halfW:5.4,lap:4928,segs:SGP_SEGS,e0:5,
-    sf:[500,500],style:'city',walled:true,traps:false,
-    zonesS:[[1040,1280],[3690,4180]],  // Republic/Raffles run + 2023-rebuilt straight
+  sgp:{id:'sgp',tag:'SGP',name:'SINGAPORE',halfW:5.4,lap:4928,ctrl:SGP_CTRL,
+    sf:[1038,306],style:'city',walled:true,traps:false,
+    zonesS:[[940,1630],[3820,4180]],   // Raffles Blvd + 2023-rebuilt straight
     zoneAnchors:[],paved:[],
     ground:[24,27,36],                 // floodlit night: everything off-road falls dark
     atmo:{night:true,sun:false,skyTop:'#05091a',skyMid:'#0c1330',skyBot:'#1b2547',fog:[34,42,66]},
