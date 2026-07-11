@@ -20,8 +20,8 @@ builds, minimap + HUD render).
 | 2 | Shanghai | done | done | done | done | yes |
 | 3 | Suzuka | done | done | done | done | yes |
 | 4 | Sakhir (Bahrain) | done | done | done | done | yes |
-| 5 | Jeddah | — | — | — | — | — |
-| 6 | Miami | — | — | — | — | — |
+| 5 | Jeddah | done | done | done | done | yes |
+| 6 | Miami | done | done | done | done | yes |
 | 7 | Montreal | — | — | — | — | — |
 | 8 | Barcelona | — | — | — | — | — |
 | 9 | Hungaroring | — | — | — | — | — |
@@ -78,3 +78,13 @@ builds, minimap + HUD render).
 - **Sakhir**: 2004 GP layout (the current F1 one). Night mode + floodlights
   like Singapore, but open desert instead of city: dark sand ground, sparse
   oasis palms, `gripVar` for the sandy off-line patches.
+- **Jeddah**: city-style night render; the engine's infield-water primitive
+  lands exactly where the real Al Arbaeen lagoon is (inside the loop). The
+  T13 12° banking can't be simulated — compensated with high-speed-stability
+  physics (`yawDamp`, low drag). Many of the real 27 "corners" are flat-out
+  kinks, which matches the gentle-kink geometry used on the two long runs.
+- **Miami**: corner sequence, signature sections (stadium arc, marina esses,
+  turnpike-ramp complex, 1.28 km back straight, T17) and lengths are real;
+  the T18-T19 return leg is proportionally longer than reality because the
+  engine needs the pit straight fed without crossing the T8-T11 leg.
+  Hard Rock Stadium approximated with the decorative banked-bowl primitive.

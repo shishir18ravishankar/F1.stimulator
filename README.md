@@ -18,6 +18,8 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `shanghai.html` — Shanghai International Circuit (China)
 - `suzuka.html` — Suzuka (Japan, figure-8)
 - `sakhir.html` — Bahrain International Circuit (night race)
+- `jeddah.html` — Jeddah Corniche Circuit (night street race)
+- `miami.html` — Miami International Autodrome
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 
