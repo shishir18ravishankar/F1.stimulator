@@ -18,8 +18,8 @@ builds, minimap + HUD render).
 |---|-------|----------|----------------|------------|---------------|-----------|
 | 1 | Melbourne | done | done | done | done | yes |
 | 2 | Shanghai | done | done | done | done | yes |
-| 3 | Suzuka | — | — | — | — | — |
-| 4 | Sakhir (Bahrain) | — | — | — | — | — |
+| 3 | Suzuka | done | done | done | done | yes |
+| 4 | Sakhir (Bahrain) | done | done | done | done | yes |
 | 5 | Jeddah | — | — | — | — | — |
 | 6 | Miami | — | — | — | — | — |
 | 7 | Montreal | — | — | — | — | — |
@@ -68,3 +68,13 @@ builds, minimap + HUD render).
   (~9 m) — the real circuit is otherwise flat.
 - Engine limitation noted for all tracks: banked corners (Zandvoort, Madrid)
   can't be modelled by the physics — approximated with extra per-track grip.
+- **Suzuka**: the figure-8 crossover is real and driveable — the validator
+  confirms exactly one centerline intersection (the bridge), with the back
+  straight passing ~7 m above the Degner-exit road. The engine's local
+  track-following handles the crossover because the two legs are far apart
+  in lap distance. The amusement-park Ferris wheel is approximated with the
+  engine's landmark-tower primitive. Elevation profile is compressed
+  (~24 m rendered vs ~40 m real) to keep the crossover clean.
+- **Sakhir**: 2004 GP layout (the current F1 one). Night mode + floodlights
+  like Singapore, but open desert instead of city: dark sand ground, sparse
+  oasis palms, `gripVar` for the sandy off-line patches.
