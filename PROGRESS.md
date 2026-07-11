@@ -26,8 +26,8 @@ builds, minimap + HUD render).
 | 8 | Barcelona | done | done | done | done | yes |
 | 9 | Hungaroring | done | done | done | done | yes |
 | 10 | Zandvoort | done | done | done | done | yes |
-| 11 | Madrid (Madring) | — | — | — | — | — |
-| 12 | Baku | — | — | — | — | — |
+| 11 | Madrid (Madring) | done | done | done | done | yes |
+| 12 | Baku | done | done | done | done | yes |
 | 13 | Mexico City | — | — | — | — | — |
 | 14 | Interlagos | — | — | — | — | — |
 | 15 | Las Vegas | — | — | — | — | — |
@@ -102,3 +102,13 @@ builds, minimap + HUD render).
 - **Zandvoort**: the 19deg/18deg banked bowls (Hugenholtz, Luyendyk) can't be
   banked by the engine - approximated with a global grip bump (mu 1.66).
   Dune rolling is in the elevation profile; the sea itself isn't drawn.
+- **Madrid (Madring)**: brand-new 2026 circuit - published facts encoded
+  (5.474 km, 22 corners, La Monumental ~550 m banked bowl at 24%, ~1 km main
+  straight); the mid-lap corner-by-corner routing is a well-reasoned
+  approximation since detailed GPS traces don't exist yet. Banking
+  approximated with a grip bump. Revisit once the real circuit is mapped.
+- **Baku**: both real DRS zones sit on the 2.2 km seafront run, which the
+  engine's wrap-around main-straight zone covers in one piece. The city-style
+  infield "water" primitive is recoloured park-green to read as the
+  Governor's Garden. Castle section narrowness is flavour (help text), the
+  driveable width stays uniform (engine limitation).

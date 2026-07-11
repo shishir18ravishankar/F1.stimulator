@@ -24,6 +24,8 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `barcelona.html` — Circuit de Barcelona-Catalunya (Spain)
 - `hungaroring.html` — Hungaroring (Hungary)
 - `zandvoort.html` — Circuit Zandvoort (Netherlands)
+- `madrid.html` — Madring, Madrid (new for 2026)
+- `baku.html` — Baku City Circuit (Azerbaijan)
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 
