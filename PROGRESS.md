@@ -51,9 +51,21 @@ on GitHub (local `main` carries the same commits). Merge that branch into
   All sub-millimetre — no bouncy view remains. (Deliberate kerb/off-road
   shake in `render()` is unchanged and intentional.)
 
+- **Task 5: car detail improved (still low-poly)** —
+  - wheels: inner closing caps (fixes rear tyres reading as hollow tubes /
+    "front-facing geometry" from behind), bright rim lip + recessed rim well
+    for sidewall depth, kept spinning treads/spokes/marks;
+  - shading: stronger directional light (0.62–1.0) plus cheap height-based
+    ambient occlusion so the body reads as a form;
+  - livery: accent stripe down the nose + spine, dimmed-livery tail cap,
+    race-number decals (nose roundel seen from ahead, endplate numbers seen
+    side-on), all colours configurable via `localStorage('f1sim-livery')`
+    `{primary:[r,g,b], accent:[r,g,b], number}` — read in `engine.js`, the
+    home-page picker (task 6) writes it.
+
 ## Not started
 
-- Task 5: car detail (tyre inner caps/sidewall depth, livery stripe + number,
+- Task 5 leftovers: none. (tyre inner caps/sidewall depth, livery stripe + number,
   stronger shading). Car mesh lives in `buildCar()` / `drawCarMesh()`.
 - Task 6: home page redesign (animated hero, car colour picker → store in
   localStorage for the engine to read, horizontal scrolling track cards).
