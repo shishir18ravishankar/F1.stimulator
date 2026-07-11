@@ -1103,6 +1103,12 @@ function drawCarMesh(){
     faces.push({z:zc,f:wp,col:cs2});
   }
   for(const part of carFaces){
+    // cockpit view: only the forward bodywork (nose, front wing, front
+    // suspension) is drawn in 3D — the cockpit surround is the 2D overlay
+    if(camMode===2){
+      let mx=-99;for(const p of part.v)if(p[0]>mx)mx=p[0];
+      if(mx<0.95)continue;
+    }
     const isWheel=part.tag&&part.tag[0]==='w';
     const isFrontW=part.tag==='wF';
     let vs=part.v;
@@ -1126,6 +1132,7 @@ function drawCarMesh(){
   const spokeA=clamp(1.3-Math.abs(car.vx)/28,0.18,1);
   const SEG=16;
   for(const wh of WHEELS){
+    if(camMode===2&&!wh.front)continue; // cockpit: rears are behind the eye
     const side=wh.cz<0?-1:1;
     // one physical rotation for the whole wheel: rolling forward the tread
     // angle DECREASES (top of the tire moves toward the nose) on BOTH sides
@@ -1360,15 +1367,15 @@ function render(fdt){
       [sk.x2+px,sk.y2+py,sk.e+0.01],[sk.x2-px,sk.y2-py,sk.e+0.01]]);
     if(pp)fillPoly(pp,`rgba(16,16,18,${sk.a.toFixed(2)})`);
   }
-  // car
+  // car (cockpit mode draws only the forward bodywork — see drawCarMesh)
   if(camMode<=1){
     const ch=Math.cos(car.heading),sh=Math.sin(car.heading);
     const shq=[[-2.6,-1.15],[2.9,-1.15],[2.9,1.15],[-2.6,1.15]].map(o=>
       [car.x+o[0]*ch-o[1]*sh,car.y+o[0]*sh+o[1]*ch,car.elev+0.015]);
     const sq=projectPoly(shq);
     if(sq)fillPoly(sq,'rgba(0,0,0,0.38)');
-    drawCarMesh();
   }
+  drawCarMesh();
   // floodlight glow sprites (night tracks)
   if(scenery.glows&&scenery.glows.length){
     ctx.globalCompositeOperation='lighter';
@@ -1505,45 +1512,29 @@ function drawStruct(stc,t){
 
 // cockpit overlay with steering wheel + halo
 function drawCockpitOverlay(){
-  // --- front tires at the frame edges, tread lines scrolling with rotation ---
-  for(const side of[-1,1]){
-    ctx.save();
-    ctx.translate(W/2+side*W*0.44,H*0.92);
-    ctx.rotate(car.delta*1.1);
-    ctx.fillStyle='#0d0d0f';
-    ctx.beginPath();ctx.roundRect(-W*0.05,-H*0.30,W*0.10,H*0.42,18);ctx.fill();
-    ctx.save();
-    ctx.beginPath();ctx.roundRect(-W*0.05,-H*0.30,W*0.10,H*0.42,18);ctx.clip();
-    ctx.strokeStyle='rgba(48,48,52,0.9)';ctx.lineWidth=3;
-    const gap=H*0.045,off=((car.spinF*0.33)%1)*gap;
-    for(let y=-H*0.32+off;y<H*0.14;y+=gap){
-      ctx.beginPath();ctx.moveTo(-W*0.05,y);ctx.lineTo(W*0.05,y+H*0.012*side);ctx.stroke();
-    }
-    ctx.restore();
-    ctx.restore();
-  }
-  // --- red cowl flanks (sidepod / cockpit edges) ---
+  // (front tyres + nose are the real 3D mesh now — see drawCarMesh)
+  // --- low cockpit-rim flanks in the bottom corners (not full-height blobs) ---
   for(const side of[-1,1]){
     const m=x=>W/2+side*x;
-    const grd=ctx.createLinearGradient(m(W*0.5),H*0.65,m(W*0.18),H);
-    grd.addColorStop(0,'#a01712');grd.addColorStop(0.5,'#c4231c');grd.addColorStop(1,'#8c130f');
+    const grd=ctx.createLinearGradient(m(W*0.42),H*0.84,m(W*0.12),H);
+    grd.addColorStop(0,'#b81f18');grd.addColorStop(1,'#8c130f');
     ctx.fillStyle=grd;
     ctx.beginPath();
-    ctx.moveTo(m(W*0.55),H+20);
-    ctx.quadraticCurveTo(m(W*0.42),H*0.66,m(W*0.20),H*0.72);
-    ctx.quadraticCurveTo(m(W*0.11),H*0.75,m(W*0.095),H+20);
+    ctx.moveTo(m(W*0.52),H+20);
+    ctx.quadraticCurveTo(m(W*0.34),H*0.87,m(W*0.16),H*0.905);
+    ctx.quadraticCurveTo(m(W*0.105),H*0.92,m(W*0.10),H+20);
     ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(255,120,105,0.5)';ctx.lineWidth=3;
+    ctx.strokeStyle='rgba(255,120,105,0.45)';ctx.lineWidth=2.5;
     ctx.beginPath();
-    ctx.moveTo(m(W*0.50),H*0.76);
-    ctx.quadraticCurveTo(m(W*0.40),H*0.675,m(W*0.20),H*0.725);
+    ctx.moveTo(m(W*0.48),H*0.935);
+    ctx.quadraticCurveTo(m(W*0.32),H*0.875,m(W*0.16),H*0.91);
     ctx.stroke();
   }
   // --- dash cowl behind the wheel ---
   ctx.fillStyle='#121217';
   ctx.beginPath();
-  ctx.moveTo(W*0.30,H+10);ctx.quadraticCurveTo(W*0.35,H*0.76,W/2,H*0.755);
-  ctx.quadraticCurveTo(W*0.65,H*0.76,W*0.70,H+10);ctx.closePath();ctx.fill();
+  ctx.moveTo(W*0.33,H+10);ctx.quadraticCurveTo(W*0.37,H*0.80,W/2,H*0.79);
+  ctx.quadraticCurveTo(W*0.63,H*0.80,W*0.67,H+10);ctx.closePath();ctx.fill();
   // --- mirrors ---
   for(const side of[-1,1]){
     ctx.save();

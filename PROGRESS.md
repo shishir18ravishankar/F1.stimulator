@@ -15,10 +15,17 @@ on GitHub (local `main` carries the same commits). Merge that branch into
   (+3.3 m → +4.0 m), pitch flattened to 0.035 so the whole car (rear wing,
   tyres, halo) sits in the bottom third with the track visible ahead.
   Changed: `updateCamera()` mode-0 block in `engine.js`.
+- **Task 2: cockpit cam fixed** — the real 3D nose / front wing / front
+  suspension / front tyres are now drawn in cockpit view (`drawCarMesh()`
+  skips faces whose local x < 0.95 and rear wheels in mode 2, and `render()`
+  calls it in every mode). The 2D overlay lost its fake full-height tyre
+  rectangles and the giant red cowl flanks are now low corner pods; dash
+  cowl slimmed. Verify note: browser caches engine.js — use
+  `fetch('/engine.js',{cache:'reload'})` before reload when testing.
 
 ## In progress
 
-- Task 2: cockpit cam (show nose, shrink corner bodywork blobs).
+- Task 3: T-cam bounce.
 
 ## Not started
 
