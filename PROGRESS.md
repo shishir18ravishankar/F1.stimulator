@@ -33,9 +33,23 @@ on GitHub (local `main` carries the same commits). Merge that branch into
   Measured on COTA T-cam at 278 km/h: elevation jitter 163.5 → 10.8 mm rms,
   camera height jitter 1.7 mm rms.
 
-## In progress
+- **Task 4: bounce audited on every track and camera** — automated audit via
+  the `SIM` hook: full-throttle launch from S/F, 6 s at 60 fps per camera,
+  measuring frame-to-frame acceleration of `cam.h` (mm). Results (worst /
+  rms, all cams within):
 
-- Task 4: cross-track bounce audit (write-up).
+  | Track       | chase       | T-cam       | cockpit     |
+  |-------------|-------------|-------------|-------------|
+  | Red Bull Ring | 0.1/0.02  | 0.1/0.02    | 0.1/0.02    |
+  | Monaco      | 0.3/0.21    | 0.4/0.22    | 0.4/0.22    |
+  | Silverstone | 0.1/0.04    | 0.1/0.04    | 0.1/0.04    |
+  | Spa         | 0.1/0.05    | 0.1/0.05    | 0.1/0.05    |
+  | Monza       | 0.0/0.00    | 0.0/0.00    | 0.0/0.00    |
+  | Singapore   | 0.0/0.00    | 0.0/0.00    | 0.0/0.00    |
+  | COTA (33 m climb) | 0.5/0.34 | 0.6/0.34 | 0.6/0.34    |
+
+  All sub-millimetre — no bouncy view remains. (Deliberate kerb/off-road
+  shake in `render()` is unchanged and intentional.)
 
 ## Not started
 
