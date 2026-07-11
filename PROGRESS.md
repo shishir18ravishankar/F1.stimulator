@@ -22,8 +22,8 @@ builds, minimap + HUD render).
 | 4 | Sakhir (Bahrain) | done | done | done | done | yes |
 | 5 | Jeddah | done | done | done | done | yes |
 | 6 | Miami | done | done | done | done | yes |
-| 7 | Montreal | — | — | — | — | — |
-| 8 | Barcelona | — | — | — | — | — |
+| 7 | Montreal | done | done | done | done | yes |
+| 8 | Barcelona | done | done | done | done | yes |
 | 9 | Hungaroring | — | — | — | — | — |
 | 10 | Zandvoort | — | — | — | — | — |
 | 11 | Madrid (Madring) | — | — | — | — | — |
@@ -88,3 +88,11 @@ builds, minimap + HUD render).
   the T18-T19 return leg is proportionally longer than reality because the
   engine needs the pit straight fed without crossing the T8-T11 leg.
   Hard Rock Stadium approximated with the decorative banked-bowl primitive.
+- **Montreal**: rowing-basin water can't be drawn (water is a city-style-only
+  primitive) — implied by the dense island treeline instead. The Wall of
+  Champions is called out in the help text but renders as the standard
+  corner wall. 3 DRS zones (T7-T8 run, Casino straight, main straight).
+- **Barcelona**: 2023-onward no-chicane layout. Repsol's wrap is mirrored
+  relative to the real map to keep the T5 descent clear of the T3 climb
+  (the sim's y-down rendering mirrors handedness anyway); elevation profile
+  (~15 m rendered) follows the real climb/valley/crest rhythm.

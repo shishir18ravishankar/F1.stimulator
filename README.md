@@ -20,6 +20,8 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `sakhir.html` — Bahrain International Circuit (night race)
 - `jeddah.html` — Jeddah Corniche Circuit (night street race)
 - `miami.html` — Miami International Autodrome
+- `montreal.html` — Circuit Gilles Villeneuve (Canada)
+- `barcelona.html` — Circuit de Barcelona-Catalunya (Spain)
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 
