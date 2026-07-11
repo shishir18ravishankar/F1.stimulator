@@ -22,6 +22,8 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `miami.html` — Miami International Autodrome
 - `montreal.html` — Circuit Gilles Villeneuve (Canada)
 - `barcelona.html` — Circuit de Barcelona-Catalunya (Spain)
+- `hungaroring.html` — Hungaroring (Hungary)
+- `zandvoort.html` — Circuit Zandvoort (Netherlands)
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 

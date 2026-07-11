@@ -24,8 +24,8 @@ builds, minimap + HUD render).
 | 6 | Miami | done | done | done | done | yes |
 | 7 | Montreal | done | done | done | done | yes |
 | 8 | Barcelona | done | done | done | done | yes |
-| 9 | Hungaroring | — | — | — | — | — |
-| 10 | Zandvoort | — | — | — | — | — |
+| 9 | Hungaroring | done | done | done | done | yes |
+| 10 | Zandvoort | done | done | done | done | yes |
 | 11 | Madrid (Madring) | — | — | — | — | — |
 | 12 | Baku | — | — | — | — | — |
 | 13 | Mexico City | — | — | — | — | — |
@@ -96,3 +96,9 @@ builds, minimap + HUD render).
   relative to the real map to keep the T5 descent clear of the T3 climb
   (the sim's y-down rendering mirrors handedness anyway); elevation profile
   (~15 m rendered) follows the real climb/valley/crest rhythm.
+- **Hungaroring**: real zone 2 sits between T1 and T2; in this trace those
+  corners flow together, so the second DRS zone is on the valley-exit run
+  instead. Valley profile ~11 m rendered (real ~36 m).
+- **Zandvoort**: the 19deg/18deg banked bowls (Hugenholtz, Luyendyk) can't be
+  banked by the engine - approximated with a global grip bump (mu 1.66).
+  Dune rolling is in the elevation profile; the sea itself isn't drawn.
