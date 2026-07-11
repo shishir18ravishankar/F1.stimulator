@@ -264,7 +264,20 @@ function trackQuery(x,y,car){
       else{mu=0.42;gravel=true;}             // gravel trap (T3/T4/the U)
     }else{mu=0.50;grass=true;}
   }else if(al>HALF_W){mu=0.92;kerbS=true;}
-  return {idx:i,s:i*track.ds,lat,mu,grass,kerb:kerbS,gravel,elev:track.E[i]};
+  // continuous elevation: project onto the local segment and interpolate
+  // between the 3 m samples — the nearest-sample value stair-steps at speed,
+  // which read as camera/car bounce in every view on hilly tracks
+  const ds2=track.ds*track.ds;
+  const ip=(i+1)%N;
+  let u=((x-track.X[i])*(track.X[ip]-track.X[i])+(y-track.Y[i])*(track.Y[ip]-track.Y[i]))/ds2;
+  let elev;
+  if(u>=0){u=Math.min(1,u);elev=track.E[i]+(track.E[ip]-track.E[i])*u;}
+  else{
+    const im=(i-1+N)%N;
+    const v=Math.min(1,-u);
+    elev=track.E[i]+(track.E[im]-track.E[i])*v;
+  }
+  return {idx:i,s:i*track.ds,lat,mu,grass,kerb:kerbS,gravel,elev};
 }
 
 // ---- static scenery: rebuilt per track (alpine circuit vs city street) ----
@@ -886,7 +899,7 @@ const cam={gx:car.x-10,gy:car.y,h:car.elev+3.3,yaw:car.heading,pitch:0.15,fl:1};
 let flCur=0;
 function updateCamera(fdt){
   const t=[Math.cos(car.heading),Math.sin(car.heading)];
-  let tgx,tgy,th,tpitch,posK,yawK,flT;
+  let tgx,tgy,th,tpitch,posK,yawK,flT,hK;
   if(camMode===0){
     // pulled back + raised: whole car (wing, tyres, halo) sits in the bottom
     // third of the frame with the track ahead, like a modern F1 game chase cam
@@ -897,14 +910,17 @@ function updateCamera(fdt){
     tgx=car.x-t[0]*1.45;tgy=car.y-t[1]*1.45;th=car.elev+2.35;
     tpitch=0.17;
     posK=1-Math.exp(-30*fdt);yawK=1-Math.exp(-20*fdt);flT=0.86;
+    hK=1-Math.exp(-12*fdt); // damp the height channel so bumps don't shake the view
   }else{
     tgx=car.x+t[0]*0.35;tgy=car.y+t[1]*0.35;th=car.elev+1.12;
     tpitch=0.035;
     posK=1-Math.exp(-25*fdt);yawK=1-Math.exp(-18*fdt);flT=0.80;
+    hK=1-Math.exp(-12*fdt);
   }
-  if(camSnap){posK=1;yawK=1;flCur=flT;camSnap=false;} // reset/track-switch: jump, don't fly
+  if(hK===undefined)hK=posK; // chase cam: height follows the (already soft) position
+  if(camSnap){posK=1;yawK=1;hK=1;flCur=flT;camSnap=false;} // reset/track-switch: jump, don't fly
   cam.gx=lerp(cam.gx,tgx,posK);cam.gy=lerp(cam.gy,tgy,posK);
-  cam.h=lerp(cam.h,th,posK);
+  cam.h=lerp(cam.h,th,hK);
   cam.yaw=lerpAngle(cam.yaw,car.heading,yawK);
   cam.pitch=lerp(cam.pitch,tpitch,posK);
   flCur=flCur?lerp(flCur,flT,Math.min(1,fdt*6)):flT;

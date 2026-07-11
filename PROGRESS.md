@@ -23,17 +23,22 @@ on GitHub (local `main` carries the same commits). Merge that branch into
   cowl slimmed. Verify note: browser caches engine.js — use
   `fetch('/engine.js',{cache:'reload'})` before reload when testing.
 
+- **Task 3: T-cam (and root-cause) bounce fixed** — two changes:
+  1. `trackQuery()` now interpolates elevation between the 3 m track samples
+     (projection onto the local segment) instead of returning the nearest
+     sample; the stair-stepping of `car.elev` was the actual bounce source
+     for the car and every camera on every hilly track.
+  2. `updateCamera()` gives T-cam and cockpit a damped height channel
+     (`hK` = 12/s) while x/y stay stiff, so bumps don't shake the view.
+  Measured on COTA T-cam at 278 km/h: elevation jitter 163.5 → 10.8 mm rms,
+  camera height jitter 1.7 mm rms.
+
 ## In progress
 
-- Task 3: T-cam bounce.
+- Task 4: cross-track bounce audit (write-up).
 
 ## Not started
 
-- Task 3: T-cam bounce (apply smoothing like other cams).
-- Task 4: bounce audit across all 7 tracks / 3 cams.
-  Root cause already identified: `trackQuery()` returns `elev: track.E[i]`
-  — nearest 3 m sample, un-interpolated, so `car.elev` stair-steps at speed.
-  Fix by interpolating elevation between samples i and i±1.
 - Task 5: car detail (tyre inner caps/sidewall depth, livery stripe + number,
   stronger shading). Car mesh lives in `buildCar()` / `drawCarMesh()`.
 - Task 6: home page redesign (animated hero, car colour picker → store in
