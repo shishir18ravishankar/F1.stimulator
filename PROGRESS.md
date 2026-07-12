@@ -72,25 +72,71 @@ on GitHub (local `main` carries the same commits). Merge that branch into
   outlines, arrows + ←/→ + Enter). In-game ESC/MENU now return to
   `index.html#tracks` so you land on the circuit list, not the hero.
 
+- **Task 7: intro popup moved to the pause menu** — track pages no longer
+  block the drive screen on load. `engine.js` hides `#help` at boot, shows a
+  one-time "P — pause & controls" toast, and `actPause()` toggles the
+  controls panel together with pause (H also toggles it any time). Panel
+  footer text updated in all 7 track HTMLs.
+
 ## Not started
 
-- Task 5 leftovers: none. (tyre inner caps/sidewall depth, livery stripe + number,
-  stronger shading). Car mesh lives in `buildCar()` / `drawCarMesh()`.
-- Task 6: home page redesign (animated hero, car colour picker → store in
-  localStorage for the engine to read, horizontal scrolling track cards).
-- Task 7: move the intro/controls popup (`#help` in each track HTML +
-  `helpShown` in engine.js) into the pause/settings menu instead of showing
-  on every load.
+- Nothing. All 7 session tasks are complete and pushed.
 
-## Notes for adding new tracks (to be completed at end of session)
+## HOW TO ADD A NEW TRACK (follow this exactly)
 
-- Track file pattern: see `tracks/spa.js` — a `XXX_CTRL` array of
-  `[x,y,elev]` points traced from the real circuit (north = up, driven
-  order, first point = S/F line, y is screen-down), plus a `TRACKS` entry
-  with `ctrl`, `lap` (meters), `sf` (= first ctrl point), `zonesS` (DRS in
-  meters from S/F), `halfW`, `style`, scenery/atmo/pMod.
-- Conversion tooling used: bacinger/f1-circuits GeoJSON → project lon/lat to
-  meters (x=east, y=-north), enforce racing direction (clockwise ⇒ positive
-  shoelace in y-down coords), rotate start to the real S/F, Douglas-Peucker
-  ~3 m, subdivide straights so control-point gaps stay ≤ ~170 m, scale into
-  a ~1000-unit box.
+1. **File pattern — copy `tracks/spa.js`.** A track file defines
+   `const XXX_CTRL = [[x,y,elev], ...]` and a `const TRACKS = { id: {...} }`
+   entry. The engine (`buildTrack`) fits a Catmull-Rom spline through `ctrl`
+   and rescales the loop to `lap` meters, so absolute ctrl units don't
+   matter — only proportions.
+2. **Get the real centerline.** Use the GeoJSON traces from the
+   `bacinger/f1-circuits` GitHub repo (or any GPS trace of the circuit):
+   - project lon/lat to meters: `x = (lon-lon0)*111320*cos(lat0)`,
+     `y = -(lat-lat0)*111320` (y is SCREEN-DOWN, so north is up on screen);
+   - point order must follow the real racing direction — for a clockwise
+     circuit the shoelace sum over the (x, y-down) points must be POSITIVE,
+     anticlockwise negative; reverse the list (keeping point 0 first) if not;
+   - rotate the list so point 0 sits on the real start/finish line, with
+     ~250 m of straight road before the first braking zone;
+   - simplify (Douglas-Peucker, ~3 m tolerance), then subdivide long gaps so
+     consecutive ctrl points stay ≤ ~170 m apart (collinear inserts keep
+     straights straight through the spline);
+   - scale into a ~60..1060 box, round to integers.
+3. **Elevation** is the third component of each point, in meters, anchored
+   at real corner positions (Spa/COTA in this repo are the reference for
+   dramatic profiles; flat tracks can repeat one value). The engine smooths
+   and interpolates — sparse anchors are fine.
+4. **TRACKS entry fields**: `id/tag/name`, `halfW` (road half-width, m),
+   `lap` (real lap length, m), `ctrl`, `sf` (= first ctrl point [x,y]),
+   `style` ('flat'|'forest'|'park'|'city'), `walled` (street circuit walls),
+   `traps` (gravel), `zonesS` ([[fromM,toM],...] extra DRS zones in meters
+   from S/F — the pit-straight zone is added automatically), `ground` rgb,
+   optional `pMod` physics tweaks, `atmo` sky/fog/night, `scenery` (trees,
+   `stands` at meters along the lap, `banking`/`tower` in ctrl coords,
+   `floodlights` spacing for night tracks).
+5. **HTML shell — copy `silverstone.html`**: change the title, the `#help`
+   blurb text and the track script tag (`tracks/yourtrack.js`). Keep the
+   `#help` markup structure — the pause menu shows that panel.
+6. **Home page** (`index.html`): add one card inside `#scroller` (copy an
+   existing card). For the outline, use the ctrl points as an SVG path
+   `M x y L x y … Z` with `viewBox="minX-50 minY-50 W+100 H+100"`; the CSS
+   (`vector-effect:non-scaling-stroke`) keeps line weight consistent.
+7. **Cameras and car need NO per-track work.** Chase/T-cam/cockpit framing,
+   bounce damping (interpolated elevation in `trackQuery()` + damped height
+   channel in `updateCamera()`), the livery/number system and the car mesh
+   are track-agnostic engine code — new tracks inherit all of it.
+8. **Verify before pushing**: serve the folder (`python3 -m http.server`),
+   open the new page and in the devtools console run
+   `SIM.key.up=true; SIM.tick(600); SIM.key.up=false;` — the car should
+   launch cleanly and the HUD map outline should match the real circuit.
+   Browser caches engine.js/track js aggressively — refresh with
+   `fetch('/engine.js',{cache:'reload'})` then reload if edits don't show.
+
+## Git / branch state (IMPORTANT for the next session)
+
+- All work is committed on local `main` AND pushed to the GitHub branch
+  **`real-track-geometry`** (direct pushes to `main` were blocked by the
+  local permission mode). Before continuing from the phone: merge that
+  branch into `main` on GitHub (open + merge a PR at
+  https://github.com/shishir18ravishankar/F1.stimulator/pull/new/real-track-geometry
+  ), or push local `main` from this machine. Then branch new work off `main`.

@@ -612,13 +612,17 @@ function lapLogic(prevS,s,lat){
 }
 
 const key={up:false,down:false,left:false,right:false,shift:false};
-let paused=false,showTelemetry=false,helpShown=true,camMode=0; // 0 chase 1 T-cam 2 cockpit
+let paused=false,showTelemetry=false,helpShown=false,camMode=0; // 0 chase 1 T-cam 2 cockpit
 const CAM_NAMES=['CHASE CAM','T-CAM','COCKPIT CAM'];
 const helpEl=document.getElementById('help');
+// the controls panel lives in the pause menu now — never block the drive
+// screen on load (task: intro popup -> settings/pause, like normal games)
+if(helpEl)helpEl.style.display='none';
+function setHelp(v){helpShown=v;if(helpEl)helpEl.style.display=v?'block':'none';}
 // control actions — callable from either the keyboard or the on-screen buttons
-function dismissHelp(){if(helpShown){helpShown=false;helpEl.style.display='none';}}
+function dismissHelp(){if(helpShown&&!paused)setHelp(false);}
 function actReset(){placeCarAtS(car.s);car.lapValid=false;msg('RESET — lap invalidated','#ffb35e');}
-function actPause(){paused=!paused;}
+function actPause(){paused=!paused;setHelp(paused);} // pause doubles as the settings/controls menu
 function actTelemetry(){showTelemetry=!showTelemetry;}
 function actCamera(){camMode=(camMode+1)%3;msg(CAM_NAMES[camMode],'#8fd0ff');}
 function actTrack(){const cur=TRACK_IDS.indexOf(curTrackKey);switchTrack(TRACK_IDS[(cur+1)%TRACK_IDS.length]);}
@@ -643,7 +647,7 @@ function setKey(e,v){
     if(k==='c')actCamera();
     if(k==='n'&&TRACK_IDS.length>1)actTrack();
     if(k==='m')actAudio();
-    if(k==='h'){helpShown=true;helpEl.style.display='block';}
+    if(k==='h')setHelp(!helpShown);
     if(e.key==='Escape')window.location.href='index.html#tracks'; // back to track select
   }
   if(used)e.preventDefault();
@@ -1967,6 +1971,7 @@ function audioTick(){
     speed:kmh,gear:car.reverse?1:g});
 }
 
+msg('P — pause & controls','#8fd0ff'); // one-time hint instead of a blocking intro
 let last=performance.now(),acc=0;
 function frame(now){
   let fdt=Math.min(0.05,(now-last)/1000);last=now;
