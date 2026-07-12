@@ -264,7 +264,20 @@ function trackQuery(x,y,car){
       else{mu=0.42;gravel=true;}             // gravel trap (T3/T4/the U)
     }else{mu=0.50;grass=true;}
   }else if(al>HALF_W){mu=0.92;kerbS=true;}
-  return {idx:i,s:i*track.ds,lat,mu,grass,kerb:kerbS,gravel,elev:track.E[i]};
+  // continuous elevation: project onto the local segment and interpolate
+  // between the 3 m samples — the nearest-sample value stair-steps at speed,
+  // which read as camera/car bounce in every view on hilly tracks
+  const ds2=track.ds*track.ds;
+  const ip=(i+1)%N;
+  let u=((x-track.X[i])*(track.X[ip]-track.X[i])+(y-track.Y[i])*(track.Y[ip]-track.Y[i]))/ds2;
+  let elev;
+  if(u>=0){u=Math.min(1,u);elev=track.E[i]+(track.E[ip]-track.E[i])*u;}
+  else{
+    const im=(i-1+N)%N;
+    const v=Math.min(1,-u);
+    elev=track.E[i]+(track.E[im]-track.E[i])*v;
+  }
+  return {idx:i,s:i*track.ds,lat,mu,grass,kerb:kerbS,gravel,elev};
 }
 
 // ---- static scenery: rebuilt per track (alpine circuit vs city street) ----
@@ -599,13 +612,17 @@ function lapLogic(prevS,s,lat){
 }
 
 const key={up:false,down:false,left:false,right:false,shift:false};
-let paused=false,showTelemetry=false,helpShown=true,camMode=0; // 0 chase 1 T-cam 2 cockpit
+let paused=false,showTelemetry=false,helpShown=false,camMode=0; // 0 chase 1 T-cam 2 cockpit
 const CAM_NAMES=['CHASE CAM','T-CAM','COCKPIT CAM'];
 const helpEl=document.getElementById('help');
+// the controls panel lives in the pause menu now — never block the drive
+// screen on load (task: intro popup -> settings/pause, like normal games)
+if(helpEl)helpEl.style.display='none';
+function setHelp(v){helpShown=v;if(helpEl)helpEl.style.display=v?'block':'none';}
 // control actions — callable from either the keyboard or the on-screen buttons
-function dismissHelp(){if(helpShown){helpShown=false;helpEl.style.display='none';}}
+function dismissHelp(){if(helpShown&&!paused)setHelp(false);}
 function actReset(){placeCarAtS(car.s);car.lapValid=false;msg('RESET — lap invalidated','#ffb35e');}
-function actPause(){paused=!paused;}
+function actPause(){paused=!paused;setHelp(paused);} // pause doubles as the settings/controls menu
 function actTelemetry(){showTelemetry=!showTelemetry;}
 function actCamera(){camMode=(camMode+1)%3;msg(CAM_NAMES[camMode],'#8fd0ff');}
 function actTrack(){const cur=TRACK_IDS.indexOf(curTrackKey);switchTrack(TRACK_IDS[(cur+1)%TRACK_IDS.length]);}
@@ -630,8 +647,8 @@ function setKey(e,v){
     if(k==='c')actCamera();
     if(k==='n'&&TRACK_IDS.length>1)actTrack();
     if(k==='m')actAudio();
-    if(k==='h'){helpShown=true;helpEl.style.display='block';}
-    if(e.key==='Escape')window.location.href='index.html'; // back to track select
+    if(k==='h')setHelp(!helpShown);
+    if(e.key==='Escape')window.location.href='index.html#tracks'; // back to track select
   }
   if(used)e.preventDefault();
 }
@@ -886,23 +903,28 @@ const cam={gx:car.x-10,gy:car.y,h:car.elev+3.3,yaw:car.heading,pitch:0.15,fl:1};
 let flCur=0;
 function updateCamera(fdt){
   const t=[Math.cos(car.heading),Math.sin(car.heading)];
-  let tgx,tgy,th,tpitch,posK,yawK,flT;
+  let tgx,tgy,th,tpitch,posK,yawK,flT,hK;
   if(camMode===0){
-    tgx=car.x-t[0]*10.2;tgy=car.y-t[1]*10.2;th=car.elev+3.3;
-    tpitch=Math.atan2(th-(car.elev+0.7),14.5);
+    // pulled back + raised: whole car (wing, tyres, halo) sits in the bottom
+    // third of the frame with the track ahead, like a modern F1 game chase cam
+    tgx=car.x-t[0]*13.0;tgy=car.y-t[1]*13.0;th=car.elev+4.0;
+    tpitch=0.035;
     posK=1-Math.exp(-6*fdt);yawK=1-Math.exp(-4.2*fdt);flT=0.92;
   }else if(camMode===1){ // T-cam: above the airbox, like TV onboard
     tgx=car.x-t[0]*1.45;tgy=car.y-t[1]*1.45;th=car.elev+2.35;
     tpitch=0.17;
     posK=1-Math.exp(-30*fdt);yawK=1-Math.exp(-20*fdt);flT=0.86;
+    hK=1-Math.exp(-12*fdt); // damp the height channel so bumps don't shake the view
   }else{
     tgx=car.x+t[0]*0.35;tgy=car.y+t[1]*0.35;th=car.elev+1.12;
     tpitch=0.035;
     posK=1-Math.exp(-25*fdt);yawK=1-Math.exp(-18*fdt);flT=0.80;
+    hK=1-Math.exp(-12*fdt);
   }
-  if(camSnap){posK=1;yawK=1;flCur=flT;camSnap=false;} // reset/track-switch: jump, don't fly
+  if(hK===undefined)hK=posK; // chase cam: height follows the (already soft) position
+  if(camSnap){posK=1;yawK=1;hK=1;flCur=flT;camSnap=false;} // reset/track-switch: jump, don't fly
   cam.gx=lerp(cam.gx,tgx,posK);cam.gy=lerp(cam.gy,tgy,posK);
-  cam.h=lerp(cam.h,th,posK);
+  cam.h=lerp(cam.h,th,hK);
   cam.yaw=lerpAngle(cam.yaw,car.heading,yawK);
   cam.pitch=lerp(cam.pitch,tpitch,posK);
   flCur=flCur?lerp(flCur,flT,Math.min(1,fdt*6)):flT;
@@ -966,7 +988,14 @@ function fogQuadFill(pts,base,t){const pp=projectPoly(pts);if(pp)fillPoly(pp,fog
 // ---------- car mesh: lofted smooth hull, Ferrari-style livery ----------
 // local coords: x forward, y up, z right. Body is a loft of 6-point cross
 // sections (one continuous surface nose->tail), not stacked boxes.
-const C_RED=[198,30,26],C_WHITE=[230,230,226],C_BLACK=[24,24,27],
+// livery: the home page writes {primary:[r,g,b], accent:[r,g,b], number}
+// to localStorage('f1sim-livery'); default is the Ferrari-style red
+const LIVERY=(()=>{try{return JSON.parse(localStorage.getItem('f1sim-livery'))||{};}catch(e){return{};}})();
+const C_RED=LIVERY.primary||[198,30,26],
+      C_WHITE=LIVERY.accent||[230,230,226],
+      CAR_NUM=String(LIVERY.number||1).slice(0,2),
+      C_PRIM_DIM=[C_RED[0]*0.55|0,C_RED[1]*0.55|0,C_RED[2]*0.55|0],
+      C_BLACK=[24,24,27],
       C_DARK=[13,14,18],C_TIRE=[28,28,31],C_YEL=[236,194,52];
 const carFaces=[]; // static local-space faces {v:[[x,y,z]...], col, tag}
 function fq(v,col,tag){carFaces.push({v,col,tag});}
@@ -991,7 +1020,7 @@ const WHEELS=[ // F1 spec: equal diameter front/rear, wide rears standing proud
     ring(-1.40,0.58,0.48,0.10,0.38),ring(-2.00,0.36,0.36,0.13,0.42),
     ring(-2.45,0.18,0.24,0.17,0.5),
   ];
-  const topCol=si=>(si===4||si===5)?C_DARK:(si>=6?C_WHITE:C_RED); // dark cockpit, white spine
+  const topCol=si=>(si===4||si===5)?C_DARK:C_WHITE; // dark cockpit; accent stripe down the nose + spine
   for(let i=0;i<S.length-1;i++){
     const A=S[i],B=S[i+1];
     for(let j=0;j<6;j++){
@@ -1000,7 +1029,7 @@ const WHEELS=[ // F1 spec: equal diameter front/rear, wide rears standing proud
     }
   }
   const F=S[0];fq([F[5],F[4],F[3],F[2],F[1],F[0]],C_RED);       // nose cap
-  const T=S[S.length-1];fq([T[0],T[1],T[2],T[3],T[4],T[5]],[110,16,13]); // tail cap (dark red)
+  const T=S[S.length-1];fq([T[0],T[1],T[2],T[3],T[4],T[5]],C_PRIM_DIM); // tail cap (dimmed livery colour)
   // floor plank
   fq([[1.6,0.10,-0.85],[-2.2,0.10,-0.92],[-2.2,0.10,0.92],[1.6,0.10,0.85]],C_DARK);
   // --- airbox + engine spine (4-pt loft) + intake ---
@@ -1096,11 +1125,20 @@ function drawCarMesh(){
     const zc=camSpace(cx4,cy4,ce4)[2];
     if(zc<NEAR)return;
     const nl=Math.hypot(nx,ny,ne)||1;
-    const lum=0.70+0.30*Math.max(0,(nx*light[0]+ny*light[2]+ne*light[1])/nl);
+    // directional light + cheap ambient occlusion: faces near the floor sit
+    // in the car's own shadow, so the body reads as a form, not a flat colour
+    const ao=0.80+0.20*clamp((ce4-car.elev)/0.85,0,1);
+    const lum=(0.62+0.38*Math.max(0,(nx*light[0]+ny*light[2]+ne*light[1])/nl))*ao;
     const cs2=`rgb${alpha!==undefined?'a':''}(${Math.round(col[0]*lum)},${Math.round(col[1]*lum)},${Math.round(col[2]*lum)}${alpha!==undefined?','+alpha.toFixed(2):''})`;
     faces.push({z:zc,f:wp,col:cs2});
   }
   for(const part of carFaces){
+    // cockpit view: only the forward bodywork (nose, front wing, front
+    // suspension) is drawn in 3D — the cockpit surround is the 2D overlay
+    if(camMode===2){
+      let mx=-99;for(const p of part.v)if(p[0]>mx)mx=p[0];
+      if(mx<0.95)continue;
+    }
     const isWheel=part.tag&&part.tag[0]==='w';
     const isFrontW=part.tag==='wF';
     let vs=part.v;
@@ -1124,6 +1162,7 @@ function drawCarMesh(){
   const spokeA=clamp(1.3-Math.abs(car.vx)/28,0.18,1);
   const SEG=16;
   for(const wh of WHEELS){
+    if(camMode===2&&!wh.front)continue; // cockpit: rears are behind the eye
     const side=wh.cz<0?-1:1;
     // one physical rotation for the whole wheel: rolling forward the tread
     // angle DECREASES (top of the tire moves toward the nose) on BOTH sides
@@ -1161,7 +1200,28 @@ function drawCarMesh(){
         pushFace([R[b][k],R[b][k2],R[b+1][k2],R[b+1][k]],col);
       }
     }
-    // outer cap: disc + rim + spokes + sidewall marks (when facing camera)
+    // inner closing cap: without it the barrel reads as a hollow tube (the
+    // far tread showing "front-facing" geometry) when seen from behind/inside
+    {
+      const capZi=wh.cz-side*wh.w/2;
+      const ci=toWorld(wh.cx,wh.r,capZi,true,wh.front);
+      const fx=ci[0]-wc[0],fy=ci[1]-wc[1],fe=ci[2]-wc[2];
+      const vx2=cam.gx-ci[0],vy2=cam.gy-ci[1],ve2=cam.h-ci[2];
+      if(fx*vx2+fy*vy2+fe*ve2>0){
+        const zi=camSpace(ci[0],ci[1],ci[2])[2];
+        if(zi>NEAR&&zi<90){
+          const dsc=[],hub=[];
+          for(let k=0;k<SEG;k++){
+            const a=spin+k/SEG*TAU;
+            dsc.push(toWorld(wh.cx+Math.cos(a)*wh.r*0.94,wh.r+Math.sin(a)*wh.r*0.94,capZi,true,wh.front));
+            hub.push(toWorld(wh.cx+Math.cos(a)*wh.r*0.50,wh.r+Math.sin(a)*wh.r*0.50,capZi,true,wh.front));
+          }
+          faces.push({z:zi-0.004,f:dsc,col:'rgb(22,22,25)'});
+          faces.push({z:zi-0.008,f:hub,col:'rgb(38,38,44)'});
+        }
+      }
+    }
+    // outer cap: sidewall disc + dished rim + spokes + sidewall marks
     const capZ=wh.cz+side*wh.w/2;
     const capPt=(ang,rad)=>toWorld(wh.cx+Math.cos(ang)*rad,wh.r+Math.sin(ang)*rad,capZ,true,wh.front);
     const c0=toWorld(wh.cx,wh.r,capZ,true,wh.front);
@@ -1177,7 +1237,12 @@ function drawCarMesh(){
       rim.push(capPt(spin+k/SEG*TAU,wh.r*0.56));
     }
     faces.push({z:zc-0.004,f:disc,col:'rgb(27,27,31)'});
-    faces.push({z:zc-0.010,f:rim,col:'rgb(52,52,60)'});
+    faces.push({z:zc-0.010,f:rim,col:'rgb(78,80,90)'}); // bright rim lip
+    { // recessed rim well: darker disc inside the lip gives the wheel depth
+      const well=[];
+      for(let k=0;k<SEG;k++)well.push(capPt(spin+k/SEG*TAU,wh.r*0.40));
+      faces.push({z:zc-0.013,f:well,col:'rgb(31,31,37)'});
+    }
     for(let s2=0;s2<5;s2++){
       const a=spin+s2/5*TAU;
       faces.push({z:zc-0.016,f:[capPt(a-0.10,wh.r*0.10),capPt(a+0.10,wh.r*0.10),
@@ -1200,6 +1265,38 @@ function drawCarMesh(){
     const pp=projectPoly(fc.f);
     if(pp)fillPoly(pp,fc.col);
   }
+  // race-number decals (billboard text, occlusion approximated by facing):
+  // nose roundel when seen from ahead, endplate numbers when seen side-on
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  {
+    const np=toWorld(2.28,0.50,0,false,false);
+    const seesNose=(cam.gx-car.x)*ch+(cam.gy-car.y)*sh>0.5; // camera ahead of the car
+    const c=camSpace(np[0],np[1],np[2]);
+    if(seesNose&&c[2]>NEAR&&c[2]<60){
+      const sx=CX+c[0]/c[2]*FL,sy=CY-c[1]/c[2]*FL;
+      const r=clamp(FL*0.16/c[2],2.5,26);
+      ctx.fillStyle='rgba(240,240,238,0.95)';
+      ctx.beginPath();ctx.arc(sx,sy,r,0,TAU);ctx.fill();
+      ctx.fillStyle='#15151a';
+      ctx.font='700 '+Math.round(r*1.4)+'px ui-monospace,monospace';
+      ctx.fillText(CAR_NUM,sx,sy+r*0.08);
+    }
+  }
+  for(const s of[-1,1]){ // rear-wing endplate numbers
+    const p=toWorld(-2.51,0.84,s*0.52,false,false);
+    const nx2=-s*sh,ny2=s*ch; // outward endplate normal in world
+    const vx2=cam.gx-p[0],vy2=cam.gy-p[1];
+    const fac=(nx2*vx2+ny2*vy2)/(Math.hypot(vx2,vy2)||1);
+    if(fac<0.30)continue;
+    const c=camSpace(p[0],p[1],p[2]);
+    if(c[2]<NEAR||c[2]>60)continue;
+    const sx=CX+c[0]/c[2]*FL,sy=CY-c[1]/c[2]*FL;
+    const fs=clamp(FL*0.30/c[2],4,30)*fac;
+    ctx.fillStyle='rgba(236,236,232,0.92)';
+    ctx.font='700 '+Math.round(fs)+'px ui-monospace,monospace';
+    ctx.fillText(CAR_NUM,sx,sy);
+  }
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 
 // ---------- frame ----------
@@ -1358,15 +1455,15 @@ function render(fdt){
       [sk.x2+px,sk.y2+py,sk.e+0.01],[sk.x2-px,sk.y2-py,sk.e+0.01]]);
     if(pp)fillPoly(pp,`rgba(16,16,18,${sk.a.toFixed(2)})`);
   }
-  // car
+  // car (cockpit mode draws only the forward bodywork — see drawCarMesh)
   if(camMode<=1){
     const ch=Math.cos(car.heading),sh=Math.sin(car.heading);
     const shq=[[-2.6,-1.15],[2.9,-1.15],[2.9,1.15],[-2.6,1.15]].map(o=>
       [car.x+o[0]*ch-o[1]*sh,car.y+o[0]*sh+o[1]*ch,car.elev+0.015]);
     const sq=projectPoly(shq);
     if(sq)fillPoly(sq,'rgba(0,0,0,0.38)');
-    drawCarMesh();
   }
+  drawCarMesh();
   // floodlight glow sprites (night tracks)
   if(scenery.glows&&scenery.glows.length){
     ctx.globalCompositeOperation='lighter';
@@ -1503,45 +1600,30 @@ function drawStruct(stc,t){
 
 // cockpit overlay with steering wheel + halo
 function drawCockpitOverlay(){
-  // --- front tires at the frame edges, tread lines scrolling with rotation ---
-  for(const side of[-1,1]){
-    ctx.save();
-    ctx.translate(W/2+side*W*0.44,H*0.92);
-    ctx.rotate(car.delta*1.1);
-    ctx.fillStyle='#0d0d0f';
-    ctx.beginPath();ctx.roundRect(-W*0.05,-H*0.30,W*0.10,H*0.42,18);ctx.fill();
-    ctx.save();
-    ctx.beginPath();ctx.roundRect(-W*0.05,-H*0.30,W*0.10,H*0.42,18);ctx.clip();
-    ctx.strokeStyle='rgba(48,48,52,0.9)';ctx.lineWidth=3;
-    const gap=H*0.045,off=((car.spinF*0.33)%1)*gap;
-    for(let y=-H*0.32+off;y<H*0.14;y+=gap){
-      ctx.beginPath();ctx.moveTo(-W*0.05,y);ctx.lineTo(W*0.05,y+H*0.012*side);ctx.stroke();
-    }
-    ctx.restore();
-    ctx.restore();
-  }
-  // --- red cowl flanks (sidepod / cockpit edges) ---
+  // (front tyres + nose are the real 3D mesh now — see drawCarMesh)
+  // --- low cockpit-rim flanks in the bottom corners (not full-height blobs) ---
   for(const side of[-1,1]){
     const m=x=>W/2+side*x;
-    const grd=ctx.createLinearGradient(m(W*0.5),H*0.65,m(W*0.18),H);
-    grd.addColorStop(0,'#a01712');grd.addColorStop(0.5,'#c4231c');grd.addColorStop(1,'#8c130f');
+    const grd=ctx.createLinearGradient(m(W*0.42),H*0.84,m(W*0.12),H);
+    grd.addColorStop(0,`rgb(${C_RED[0]},${C_RED[1]},${C_RED[2]})`);
+    grd.addColorStop(1,`rgb(${C_RED[0]*0.6|0},${C_RED[1]*0.6|0},${C_RED[2]*0.6|0})`);
     ctx.fillStyle=grd;
     ctx.beginPath();
-    ctx.moveTo(m(W*0.55),H+20);
-    ctx.quadraticCurveTo(m(W*0.42),H*0.66,m(W*0.20),H*0.72);
-    ctx.quadraticCurveTo(m(W*0.11),H*0.75,m(W*0.095),H+20);
+    ctx.moveTo(m(W*0.52),H+20);
+    ctx.quadraticCurveTo(m(W*0.34),H*0.87,m(W*0.16),H*0.905);
+    ctx.quadraticCurveTo(m(W*0.105),H*0.92,m(W*0.10),H+20);
     ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(255,120,105,0.5)';ctx.lineWidth=3;
+    ctx.strokeStyle='rgba(255,120,105,0.45)';ctx.lineWidth=2.5;
     ctx.beginPath();
-    ctx.moveTo(m(W*0.50),H*0.76);
-    ctx.quadraticCurveTo(m(W*0.40),H*0.675,m(W*0.20),H*0.725);
+    ctx.moveTo(m(W*0.48),H*0.935);
+    ctx.quadraticCurveTo(m(W*0.32),H*0.875,m(W*0.16),H*0.91);
     ctx.stroke();
   }
   // --- dash cowl behind the wheel ---
   ctx.fillStyle='#121217';
   ctx.beginPath();
-  ctx.moveTo(W*0.30,H+10);ctx.quadraticCurveTo(W*0.35,H*0.76,W/2,H*0.755);
-  ctx.quadraticCurveTo(W*0.65,H*0.76,W*0.70,H+10);ctx.closePath();ctx.fill();
+  ctx.moveTo(W*0.33,H+10);ctx.quadraticCurveTo(W*0.37,H*0.80,W/2,H*0.79);
+  ctx.quadraticCurveTo(W*0.63,H*0.80,W*0.67,H+10);ctx.closePath();ctx.fill();
   // --- mirrors ---
   for(const side of[-1,1]){
     ctx.save();
@@ -1765,7 +1847,7 @@ function drawHUD(sp){
 // clickable on-screen buttons (top-centre). Also registers hit-boxes for the mouse.
 function drawButtons(){
   const defs=[['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset],
-    ['MENU',()=>{window.location.href='index.html';}]];
+    ['MENU',()=>{window.location.href='index.html#tracks';}]];
   if(TRACK_IDS.length>1)defs.push(['TRACK',actTrack]);
   const bw=64,bh=26,gap=6,total=defs.length*bw+(defs.length-1)*gap;
   let x0=W/2-total/2,y0=12;
@@ -1889,6 +1971,7 @@ function audioTick(){
     speed:kmh,gear:car.reverse?1:g});
 }
 
+msg('P — pause & controls','#8fd0ff'); // one-time hint instead of a blocking intro
 let last=performance.now(),acc=0;
 function frame(now){
   let fdt=Math.min(0.05,(now-last)/1000);last=now;
