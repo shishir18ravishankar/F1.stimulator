@@ -5,6 +5,9 @@
 // [x,y,elev]; the desert plateau falls ~8 m through the tricky off-camber
 // T9-T10 double-left and climbs back through the long T11. Three DRS zones:
 // the 1.09 km main straight, T3-T4, and T10-T11.
+// Key corners: T1 (heavy stop from 320 km/h), the off-camber T9-T10, long T11.
+// Elevation: gentle desert plateau (~8 m). DRS: 3 zones.
+// Scenery: floodlit desert - palm oasis, big stands, the Sakhir Tower.
 const BAH_CTRL=[
   [240,560,4],[240,470,4],[240,380,4],       // S/F: the 1.09 km main straight (DRS)
   [242,352,4],[250,336,4],[264,328,4],       // T1 - hard braking from 320 km/h,

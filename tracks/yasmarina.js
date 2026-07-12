@@ -5,6 +5,10 @@
 // straight, a heavy chicane, the second straight, then the banked T9
 // hairpin into the marina sector beneath the W Hotel. Centerline traced
 // from the real circuit's geometry (driven order); points are [x,y,elev].
+// Key corners: the T5 hairpin launching the back straight, the banked T9
+// hairpin, the T12-T16 marina run beneath the W Hotel.
+// Elevation: flat. DRS: 2 zones on the twin straights (sim adds the pit
+// straight). Scenery: marina city at twilight - hotel, yachts, floodlights.
 const YAS_CTRL=[
   [560,580,3],[440,582,3],[340,584,3],       // S/F past the pit building
   [300,584,3],[284,576,3],[278,560,3],       // T1 - the hard left-ish opener

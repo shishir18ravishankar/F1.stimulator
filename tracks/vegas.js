@@ -5,6 +5,9 @@
 // the S/F line), so the plan view matches the official track map: Koval
 // Lane north past the Sphere, Sands Avenue west, then the ~1.9 km STRIP
 // straight south past the casinos, and Harmon Avenue home. Points [x,y,elev].
+// Key corners: the T1 stop off Koval, the T5-T9 loop past the Sphere, the
+// heavy T14 stop at the end of the Strip. Elevation: dead flat. DRS: 2 zones.
+// Scenery: night city - casino neon, the glowing Sphere, the Strip's hotels.
 const LVG_CTRL=[
   [560,470,3],[558,400,3],                   // S/F on Koval Lane, heading north
   [554,376,3],[560,352,3],                   // T1-T2 - the opening jog

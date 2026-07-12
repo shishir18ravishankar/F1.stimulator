@@ -5,6 +5,9 @@
 // (~2.5 m range). 2022-revised layout: the old T9-T10 chicane is gone, the
 // lap flows through the fast T9-T10 Lakeside chicane and the wide-open T11-T12.
 // The lake sits inside the loop; 4 DRS zones - the most of any circuit.
+// Key corners: Jones (T1), Brabham (T2), the Lakeside chicane (T9-T10).
+// Elevation: flat lakeside parkland (~2.5 m range). DRS: 4 zones - the most in F1.
+// Scenery: parkland - mature trees around the lake, city skyline beyond.
 const MEL_CTRL=[
   [150,330,2.5],[178,416,2.7],[206,502,2.9], // S/F, Aughtie Drive heading SE
   [222,522,3.0],

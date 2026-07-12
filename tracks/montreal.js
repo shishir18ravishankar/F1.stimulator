@@ -5,6 +5,9 @@
 // the west end, three chicanes along the top, L'Epingle hairpin at the far
 // east, and the ~1 km Casino straight back to the final chicane past the
 // WALL OF CHAMPIONS. Points are [x,y,elev]; the island is flat.
+// Key corners: Virage Senna (T1-T2), L'Epingle (T10), the Wall of Champions
+// chicane (T13-T14). Elevation: flat man-made island. DRS: 3 zones.
+// Scenery: island parkland in the St. Lawrence - trees, rowing basin, casino.
 const MTL_CTRL=[
   [368,330,6],[356,300,6],[344,270,6],       // S/F - the short pit straight
   [338,252,6],[330,240,6],[318,234,6],       // T1 (Virage Senna entry, L)

@@ -5,6 +5,10 @@
 // Centerline traced from the real circuit's geometry (driven order from the
 // S/F line), so the plan view matches the official track map. Points are
 // [x,y,elev]; the desert is flat, the grip falls off sharply off-line.
+// Key corners: T1 braking from 330 km/h, the fast T5-T8 sweeper rhythm, the
+// long final T16 slinging cars onto the straight. Elevation: flat desert.
+// DRS: 1 zone (the main straight). Scenery: floodlit desert - dunes fading
+// into Lusail's skyline glow.
 const LUS_CTRL=[
   [300,558,3],[380,561,3],[460,564,3],       // S/F - the 1.07 km main straight
   [516,564,3],[532,556,3],[540,542,3],       // T1 - braking from 330

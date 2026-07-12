@@ -5,6 +5,9 @@
 // the fast flowing T4-T8 arc past the stadium campus, the fake-marina esses,
 // the awkward slow T11-T15 complex threading the turnpike ramps, and the
 // 1.28 km back straight into the T17 heavy-braking zone. Three DRS zones.
+// Key corners: the T4-T8 stadium arc, the T11-T15 turnpike complex, T17 stop.
+// Elevation: essentially flat (small ramp hop at T14-T15). DRS: 3 zones.
+// Scenery: stadium campus - Hard Rock Stadium, palms, the fake marina.
 const MIA_CTRL=[
   [900,204,3],[780,202,3],[660,200,3],       // S/F straight past the stadium
   [540,198,3],[420,197,3],

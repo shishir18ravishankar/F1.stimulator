@@ -5,6 +5,10 @@
 // circuit's geometry (driven order from the S/F line), so the plan view
 // matches the official track map. Points are [x,y,elev] - the lap rolls
 // constantly over the dunes; Scheivlak (T7) drops blind over a crest.
+// Key corners: Tarzan (T1), the 19-degree banked Hugenholtz (T3), the blind
+// Scheivlak drop (T7), the 18-degree banked Luyendyk finale (T14).
+// Elevation: rolling dunes plus two banked bowls. DRS: 2 zones.
+// Scenery: seaside - North Sea dune grass, the beach town beyond the pits.
 const ZAN_CTRL=[
   [220,302,6],[300,304,6],[400,308,6],       // S/F pit straight
   [448,310,6],[468,318,6.5],[474,334,7],     // T1 Tarzan - the banked-bowl

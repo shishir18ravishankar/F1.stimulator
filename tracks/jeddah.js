@@ -6,6 +6,9 @@
 // matches the official track map. Points are [x,y,elev]; the corniche is
 // dead flat. Signatures: the relentless T4-T12 high-speed esses between
 // walls, the 12-degree banked T13 at the north end, and three DRS zones.
+// Key corners: the T4-T12 wall-lined esses, the 12-degree banked T13, T27 finale.
+// Elevation: dead flat seafront. DRS: 3 zones.
+// Scenery: night-city seaside - Red Sea corniche, lagoon, floodlit towers.
 const JED_CTRL=[
   [300,700,2],[300,640,2],[300,560,2],       // S/F on the seafront straight
   [296,538,2],[286,530,2],[284,518,2],       // T1-T2 - the tight left-right

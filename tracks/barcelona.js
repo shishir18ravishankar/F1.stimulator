@@ -5,6 +5,9 @@
 // track map. Points are [x,y,elev] with the real ~30 m profile: the climb
 // through T3 to Repsol, the drop to the valley, the blind Campsa crest onto
 // the downhill back straight, La Caixa, and the stadium section.
+// Key corners: Elf (T1), the blind Campsa crest (T9), La Caixa (T10).
+// Elevation: rolling (~30 m - climb to Repsol, drop to the valley). DRS: 2 zones.
+// Scenery: Catalan countryside - dry wooded hills north of Barcelona.
 const BCN_CTRL=[
   [240,560,12],[320,562,12],[400,562,12],    // S/F - the 1.047 km main straight
   [470,562,13],[486,568,13.5],[494,580,14],  // T1 (R) - late-brake magnet

@@ -5,6 +5,9 @@
 // traced from the real circuit's geometry (north = up, driven order from the
 // S/F line), so the plan view matches the official track map. Points are
 // [x,y,elev]; the old town sits ~22 m above the boulevard.
+// Key corners: the 90-degree T1, the castle squeeze (T8-T12), downhill T15.
+// Elevation: old town ~22 m above the flat seafront boulevard. DRS: 2 zones.
+// Scenery: city seaside - Caspian promenade, medieval fortress walls, towers.
 const BAK_CTRL=[
   [600,562,2],[700,564,2],[790,566,2],       // S/F on Neftchilar Avenue
   [840,566,2],[856,558,2],[860,542,2],       // T1 - 90 degrees, hard braking

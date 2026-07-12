@@ -6,6 +6,9 @@
 // that tightens and then unwinds downhill), the mirror-image T11-T13 carousel
 // opening onto the 1.17 km back straight - the longest in F1 - and the T14
 // hairpin. Mostly flat (~8 m of camber-driven change around the snail).
+// Key corners: the Snail (T1-T3), the T11-T13 carousel, the T14 hairpin.
+// Elevation: mostly flat (~8 m around the snail). DRS: 2 zones.
+// Scenery: reclaimed marshland - twin mega-grandstands, paddock bridge towers.
 const SHA_CTRL=[
   [168,560,4],[168,505,4.6],[168,450,5.2],   // S/F pit straight heading north
   [170,420,6.0],

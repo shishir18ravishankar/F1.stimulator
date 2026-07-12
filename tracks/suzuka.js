@@ -5,6 +5,9 @@
 // [x,y,elev] with the real ~40 m profile: down to T1-T2, the long climb
 // through the Esses to Dunlop, down through Degner to the low hairpin road,
 // then the back straight rising to cross the bridge before 130R.
+// Key corners: the Esses (T3-T7), Degner (T8-T9), Spoon (T13-T14), 130R (T15).
+// Elevation: hilly (~40 m, figure-8 bridge crossover). DRS: 1 zone only.
+// Scenery: forested hills, with the Motopia amusement-park Ferris wheel.
 const SUZ_CTRL=[
   [470,544,10.5],[380,554,10.2],[300,564,10.0], // S/F pit straight heading west
   [250,572,9.0],

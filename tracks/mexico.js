@@ -6,6 +6,10 @@
 // S/F line), so the plan view matches the official track map. Points are
 // [x,y,elev] - the park is flat; the drama is the altitude and the FORO SOL
 // stadium section where the track threads the old baseball arena.
+// Key corners: the Esses (T7-T11), the Foro Sol stadium section (T13-T15),
+// the Peraltada half (T17). Elevation: flat park - but at 2,285 m altitude.
+// DRS: 3 zones on the real track (2 modelled here).
+// Scenery: city parkland - the stadium bowl, mountains behind the smog.
 const MEX_CTRL=[
   [270,561,4],[395,562,4],[520,564,4],       // S/F - the 1.2 km run to T1
   [580,566,4],[600,558,4],[606,542,4],       // T1 - deep braking, thin air

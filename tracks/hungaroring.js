@@ -5,6 +5,9 @@
 // Centerline traced from the real circuit's geometry (driven order from the
 // S/F line), so the plan view matches the official track map. Points are
 // [x,y,elev]. Two DRS zones; overtaking is famously hard - qualifying matters.
+// Key corners: the wide downhill T1, the blind T4 crest, the T6-T7 chicane.
+// Elevation: hilly valley amphitheatre (~35 m). DRS: 2 zones.
+// Scenery: rural hills outside Budapest - dusty farmland, packed grass banks.
 const HUN_CTRL=[
   [200,200,20],[300,196,20],[400,192,20],    // S/F on the ridge (908 m straight)
   [450,192,19],[470,200,18],[478,214,17],    // T1 - wide, downhill, the one

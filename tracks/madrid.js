@@ -4,6 +4,10 @@
 // slings cars onto the ~1 km pit straight. Centerline built from the
 // published 2026 layout (driven order from the S/F line); points are
 // [x,y,elev] with the park sector climbing ~14 m above the fairground side.
+// Key corners: the walled T1 stop, the park-sector climb, LA MONUMENTAL -
+// the 24% banked bowl onto the pit straight.
+// Elevation: ~14 m park climb plus the banking. DRS: 2 zones.
+// Scenery: city - IFEMA fairground halls giving way to Valdebebas parkland.
 const MAD_CTRL=[
   [260,560,8.4],[340,562,8.2],[420,564,8],   // S/F - the ~1 km main straight
   [470,566,8],[488,560,8],[494,546,8.4],     // T1 - heavy braking, urban walls

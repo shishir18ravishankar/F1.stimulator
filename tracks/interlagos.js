@@ -6,6 +6,9 @@
 // downhill-compressing SENNA S, Curva do Sol onto the descending Reta Oposta,
 // the low infield by the lake, and the long flat-out Subida dos Boxes climb
 // from Juncao all the way home. Rain circuit, kerb circuit, drama circuit.
+// Key corners: the Senna S (T1-T2), Curva do Sol (T3), Juncao (T12) onto the
+// Subida dos Boxes climb. Elevation: hilly (~30 m natural bowl). DRS: 2 zones.
+// Scenery: Sao Paulo suburbs above the Guarapiranga lakes - a city grandstand.
 const INT_CTRL=[
   [520,204,38.2],[470,198,39],[400,196,40],  // S/F - the curved Tribunas arc
   [330,198,39.5],
