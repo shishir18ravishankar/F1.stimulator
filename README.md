@@ -1,6 +1,6 @@
 # F1 Simulator
 
-A browser-based Formula 1 racing simulator — physics-driven car handling, procedural engine audio, and seven full circuits, sharing one engine. No installation, no build step, no external assets.
+A browser-based Formula 1 racing simulator — physics-driven car handling, procedural engine audio, and twenty-four full circuits (the entire 2026 calendar), sharing one engine. No installation, no build step, no external assets.
 
 ## Play it
 
@@ -14,6 +14,23 @@ Open [`index.html`](index.html) in any modern browser (Chrome, Edge, Safari, Fir
 - `monza.html` — Monza (Italy)
 - `singapore.html` — Singapore Marina Bay (night race)
 - `cota.html` — Circuit of the Americas (Austin, Texas)
+- `melbourne.html` — Albert Park, Melbourne (Australia)
+- `shanghai.html` — Shanghai International Circuit (China)
+- `suzuka.html` — Suzuka (Japan, figure-8)
+- `sakhir.html` — Bahrain International Circuit (night race)
+- `jeddah.html` — Jeddah Corniche Circuit (night street race)
+- `miami.html` — Miami International Autodrome
+- `montreal.html` — Circuit Gilles Villeneuve (Canada)
+- `barcelona.html` — Circuit de Barcelona-Catalunya (Spain)
+- `hungaroring.html` — Hungaroring (Hungary)
+- `zandvoort.html` — Circuit Zandvoort (Netherlands)
+- `madrid.html` — Madring, Madrid (new for 2026)
+- `baku.html` — Baku City Circuit (Azerbaijan)
+- `mexico.html` — Autódromo Hermanos Rodríguez (Mexico City)
+- `interlagos.html` — Autódromo José Carlos Pace (São Paulo)
+- `vegas.html` — Las Vegas Strip Circuit (night race)
+- `lusail.html` — Lusail International Circuit (Qatar, night race)
+- `yasmarina.html` — Yas Marina Circuit (Abu Dhabi, twilight finale)
 - `engine.js` — the shared engine (physics, camera, renderer, input, audio, HUD)
 - `tracks/*.js` — per-track layout data (control points / corner data + track config)
 
@@ -35,7 +52,7 @@ You can also open a track file directly to skip the menu. Everything works with 
 ## Features
 
 - Slip-angle tire model with friction circle and weight transfer
-- Seven tracks built from real circuit layouts, each with its own character: Red Bull Ring (alpine, three DRS zones), Monaco (walled street circuit, tunnel + harbour), Silverstone (flat, wide and fast, the Becketts esses), Spa-Francorchamps (~95 m of elevation, the Eau Rouge/Raidillon climb, Ardennes forest), Monza (low-downforce Temple of Speed, tall pines and the old banking), Singapore Marina Bay (anti-clockwise night race under floodlights, lit skyline over the harbour), and COTA (counter-clockwise, a ~19% blind climb to Turn 1 and a 1 km back straight)
+- Twenty-four tracks built from real circuit layouts, each with its own character: Red Bull Ring (alpine, three DRS zones), Monaco (walled street circuit, tunnel + harbour), Silverstone (flat, wide and fast, the Becketts esses), Spa-Francorchamps (~95 m of elevation, the Eau Rouge/Raidillon climb, Ardennes forest), Monza (low-downforce Temple of Speed, tall pines and the old banking), Singapore Marina Bay (anti-clockwise night race under floodlights, lit skyline over the harbour), and COTA (counter-clockwise, a ~19% blind climb to Turn 1 and a 1 km back straight)
 - Per-track physics setups layered on shared params: Monza low-drag/low-downforce, Spa patchy forest grip, Monaco tight twitchy steering, Silverstone extra high-speed stability
 - Per-track atmosphere (sky, fog, haze) including a full night mode with floodlights, stars and lit windows for Singapore
 - Procedural engine, turbo, tire-screech, and wind audio (Web Audio API, no sound files)
