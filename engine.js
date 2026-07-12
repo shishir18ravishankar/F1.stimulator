@@ -42,7 +42,14 @@ const P={
   alphaMax:0.45,
   yawDamp:3200,                  // stronger than v2.0 — settles fast
   betaMax:1.05,
-  power:775000, maxDriveForce:11800,
+  power:775000, maxDriveForce:11800, // total peak = icePower + ersPower
+  // --- 2026 energy management (battery + MGU-K) ---
+  icePower:425000,                   // combustion-only pace when the battery is flat
+  ersPower:350000,                   // electric deploy, tapering out toward top speed
+  ersCap:8.5e6,                      // battery energy: 8.5 MJ (one lap of deployment)
+  ersHarvestBrake:350000,            // regen under braking (scales with pedal)
+  ersHarvestLift:80000,              // lift-and-coast harvest
+  ersHarvestPart:35000,              // part-throttle trickle harvest
   brakeForce:34000, brakeBias:0.58, engineBrake:700,
   CdA:1.56, ClA:3.30, aeroBalance:0.44, rho:1.20,
   drsDrag:0.84, drsDF:0.78,
@@ -292,8 +299,9 @@ function worldBoxFaces(cx,cy,ge,yaw,sx,sy,sz,col,faces){
   const F=[[1,3,7,5,0.95],[0,4,6,2,0.78],[2,6,7,3,1.0],[4,5,7,6,0.88],[0,2,3,1,0.7]];
   for(const f of F){
     const lum=f[4];
-    faces.push({pts:[c[f[0]],c[f[1]],c[f[2]],c[f[3]]],
-      col:`rgb(${Math.round(col[0]*lum)},${Math.round(col[1]*lum)},${Math.round(col[2]*lum)})`});
+    const r=Math.round(col[0]*lum),g=Math.round(col[1]*lum),b=Math.round(col[2]*lum);
+    // rgb kept as numbers so per-frame fogging never has to re-parse the string
+    faces.push({pts:[c[f[0]],c[f[1]],c[f[2]],c[f[3]]],col:`rgb(${r},${g},${b})`,rgb:[r,g,b]});
   }
 }
 function buildScenery(T){
@@ -305,7 +313,11 @@ function buildScenery(T){
     // footprint radius (max horizontal reach of any vertex) — used to skip a
     // structure if the camera ends up inside it, so it can't fill the screen
     let br=0;for(const f of faces)for(const p of f.pts){const d=Math.hypot(p[0]-x,p[1]-y);if(d>br)br=d;}
-    structs.push({x,y,faces,br});
+    // draw distance scales with physical size: a 1 m Armco barrier is culled
+    // ~150 m out while a grandstand still draws at 600 m. This is what keeps
+    // the wall-lined street circuits (Singapore/Jeddah/Baku/Vegas/Monaco)
+    // inside the 60 fps frame budget.
+    structs.push({x,y,faces,br,cull:Math.max(150,Math.min(620,80+br*28))});
   };
   function stand(si,side,w,len){
     const i=((si%N)+N)%N;
@@ -549,6 +561,7 @@ const car={
   slideF:0,slideR:0,utilF:{x:0,y:0},utilR:{x:0,y:0},
   alphaF:0,alphaR:0,FzF:0,FzR:0,delta:0,
   drsOpen:false,drsFlap:0,reverse:false,revT:0,lapValid:true,nanEvents:0,
+  ersE:8.5e6,ersMode:0,ersFlow:0, // battery J, 0 idle / 1 deploy / 2 harvest
   rollV:0,pitchV:0,bounce:0,spinF:0,spinR:0,
   kerbShake:0,susF:0,susVelF:0,susR:0,susVelR:0,fastT:-10,
 };
@@ -559,6 +572,7 @@ function placeCarAtS(s){
   car.steer=0;car.throttle=0;car.brake=0;car.slideF=0;car.slideR=0;
   car.kerbShake=0;car.susF=0;car.susVelF=0;car.susR=0;car.susVelR=0;car.bounce=0;
   car.reverse=false;car.elev=track.E[i];
+  car.ersE=P.ersCap;car.ersMode=0;car.ersFlow=0; // fresh battery (lap invalidates anyway)
   camSnap=true; // jump the camera behind the car instead of flying across the map
 }
 let camSnap=false;
@@ -617,8 +631,20 @@ const CAM_NAMES=['CHASE CAM','T-CAM','COCKPIT CAM'];
 const helpEl=document.getElementById('help');
 // the controls panel lives in the pause menu now — never block the drive
 // screen on load (task: intro popup -> settings/pause, like normal games)
-if(helpEl)helpEl.style.display='none';
-function setHelp(v){helpShown=v;if(helpEl)helpEl.style.display=v?'block':'none';}
+// shown/hidden with a quick fade+scale so the pause menu feels responsive
+// rather than popping (visibility keeps it non-interactive while hidden)
+if(helpEl){
+  helpEl.style.transition='opacity .16s ease,transform .16s ease,visibility .16s';
+  helpEl.style.opacity='0';helpEl.style.visibility='hidden';
+  helpEl.style.transform='translate(-50%,-50%) scale(0.96)';
+}
+function setHelp(v){
+  helpShown=v;
+  if(!helpEl)return;
+  helpEl.style.opacity=v?'1':'0';
+  helpEl.style.visibility=v?'visible':'hidden';
+  helpEl.style.transform='translate(-50%,-50%) scale('+(v?1:0.96)+')';
+}
 // control actions — callable from either the keyboard or the on-screen buttons
 function dismissHelp(){if(helpShown&&!paused)setHelp(false);}
 function actReset(){placeCarAtS(car.s);car.lapValid=false;msg('RESET — lap invalidated','#ffb35e');}
@@ -723,11 +749,36 @@ function step(dt,surf){
 
   const dir=car.vx>=0?1:-1;
   let driveF=0;
+  // 2026 energy management: the battery auto-deploys on power application and
+  // recharges under braking / lift-and-coast. Flat battery = ICE-only power
+  // (425 kW instead of 775), so the car visibly dies at the top of the gears.
+  car.ersMode=0;car.ersFlow=0;
   if(!car.reverse){
-    driveF=car.throttle*Math.min(P.maxDriveForce,P.power/Math.max(sp,6));
+    let pwr=P.icePower;
+    if(car.throttle>0.5&&sp>22&&car.ersE>0){
+      const taper=clamp((97-sp)/14,0,1);        // 350 kW -> 0 between ~300-350 km/h
+      const pe=Math.min(P.ersPower*taper,car.ersE/dt);
+      if(pe>1000){
+        pwr+=pe;
+        car.ersE=Math.max(0,car.ersE-pe*car.throttle*dt);
+        car.ersMode=1;car.ersFlow=pe*car.throttle;
+      }
+    }
+    driveF=car.throttle*Math.min(P.maxDriveForce,pwr/Math.max(sp,6));
     const tc=clamp((car.slideR-0.2)*P.assistTC*2.5,0,0.55); // traction assist
     driveF*=(1-tc);
   }else if(key.down&&car.vx>-7)driveF=-3800;
+  // harvest: brake regen, lift-and-coast, part-throttle trickle
+  if(!car.reverse&&sp>8&&car.ersE<P.ersCap&&car.ersMode!==1){
+    let hv=0;
+    if(car.brake>0.1)hv=P.ersHarvestBrake*car.brake;
+    else if(car.throttle<0.05&&sp>20)hv=P.ersHarvestLift;
+    else if(car.throttle>0.02&&car.throttle<0.5)hv=P.ersHarvestPart;
+    if(hv>0){
+      car.ersE=Math.min(P.ersCap,car.ersE+hv*dt);
+      car.ersMode=2;car.ersFlow=hv;
+    }
+  }
   let brkF=car.brake*P.brakeForce*P.brakeBias;
   if(car.slideF>0.35)brkF*=1-P.assistABS; // brake assist: release locked fronts
   const brkR=car.brake*P.brakeForce*(1-P.brakeBias);
@@ -1427,17 +1478,20 @@ function render(fdt){
   for(let si=0;si<scenery.structs.length;si++){
     const stc=scenery.structs[si];
     const dx=stc.x-cam.gx,dy=stc.y-cam.gy,d2=dx*dx+dy*dy;
-    if(d2>620*620)continue;
+    const cr=stc.cull||620;
+    if(d2>cr*cr)continue;
     const d=Math.sqrt(d2);
     if(d<(stc.br||0)*0.75)continue;               // camera inside this structure -> skip
-    list.push({k:2,z:d-(stc.br||0)*0.5,i:si});    // sort by near edge, not centre
+    // LOD: past ~60% of its cull range a structure draws only its primary box
+    // (first 5 faces) — roof caps / window strips are sub-pixel there anyway
+    list.push({k:2,z:d-(stc.br||0)*0.5,i:si,lod:d>cr*0.6});
   }
   list.sort((a,b)=>b.z-a.z);
   for(const it of list){
     const t=Math.min(1,Math.pow(it.z/FAR,1.25));
     if(it.k===0)drawSeg(it.i,it.z,t);
     else if(it.k===1)drawTree(scenery.trees[it.i],t);
-    else drawStruct(scenery.structs[it.i],t);
+    else drawStruct(scenery.structs[it.i],t,it.lod);
   }
   // checker
   for(const c of scenery.checker){
@@ -1469,9 +1523,10 @@ function render(fdt){
     ctx.globalCompositeOperation='lighter';
     for(const g of scenery.glows){
       const c=camSpace(g.x,g.y,g.e);
-      if(c[2]<NEAR||c[2]>520)continue;
+      if(c[2]<NEAR||c[2]>380)continue;
       const sx=CX+c[0]/c[2]*FL,sy=CY-c[1]/c[2]*FL;
       const rr=Math.min(70,FL*1.1/c[2]);
+      if(rr<3)continue; // sub-pixel glow isn't worth a gradient allocation
       const gr=ctx.createRadialGradient(sx,sy,0,sx,sy,rr);
       gr.addColorStop(0,'rgba(255,246,214,0.55)');gr.addColorStop(1,'rgba(255,246,214,0)');
       ctx.fillStyle=gr;ctx.fillRect(sx-rr,sy-rr,rr*2,rr*2);
@@ -1577,9 +1632,10 @@ function drawTree(tr,t){
     ctx.closePath();ctx.fill();
   }
 }
-function drawStruct(stc,t){
+function drawStruct(stc,t,lod){
   const zs=[];
-  for(const f of stc.faces){
+  const src=lod&&stc.faces.length>5?(stc.lodF||(stc.lodF=stc.faces.slice(0,5))):stc.faces;
+  for(const f of src){
     let cx4=0,cy4=0,ce4=0;
     for(const p of f.pts){cx4+=p[0];cy4+=p[1];ce4+=p[2];}
     const n=f.pts.length;
@@ -1591,9 +1647,9 @@ function drawStruct(stc,t){
   for(const e of zs){
     const pp=projectPoly(e.f.pts);
     if(!pp)continue;
-    if(t>0.05){ // fog the precomputed color
-      const m=e.f.col.match(/\d+/g);
-      fillPoly(pp,fogMix([+m[0],+m[1],+m[2]],t));
+    if(t>0.05){ // fog the precomputed color (numeric rgb avoids re-parsing)
+      const m=e.f.rgb||(e.f.rgb=e.f.col.match(/\d+/g).map(Number));
+      fillPoly(pp,fogMix(m,t));
     }else fillPoly(pp,e.f.col);
   }
 }
@@ -1741,7 +1797,21 @@ function drawHUD(sp){
   if(car.reverse)gear='R';
   const bx=22,by=H-24;
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(bx-10,by-96,272,110,10);ctx.fill();
+  ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(bx-10,by-118,272,132,10);ctx.fill();
+  // ERS battery gauge: level bar + state (yellow deploy / green harvest)
+  {
+    const ersF=car.ersE/P.ersCap;
+    ctx.fillStyle='#8fa1b5';ctx.font='700 10px ui-monospace,monospace';
+    ctx.fillText('ERS',bx+2,by-102);
+    ctx.fillStyle='#1c2532';ctx.fillRect(bx+30,by-110,150,9);
+    ctx.fillStyle=ersF<0.15?'#ff5a4f':car.ersMode===1?'#ffd75e':car.ersMode===2?'#37d67a':'#4fa3ff';
+    ctx.fillRect(bx+30,by-110,150*ersF,9);
+    ctx.fillStyle='#67788c';ctx.font='500 10px ui-monospace,monospace';
+    ctx.fillText(Math.round(ersF*100)+'%',bx+186,by-102);
+    if(car.ersMode===1){ctx.fillStyle='#ffd75e';ctx.fillText('DEPLOY',bx+218,by-102);}
+    else if(car.ersMode===2){ctx.fillStyle='#37d67a';ctx.fillText('CHARGE',bx+218,by-102);}
+    else if(ersF<0.02){ctx.fillStyle='#ff5a4f';ctx.fillText('EMPTY',bx+218,by-102);}
+  }
   ctx.fillStyle='#fff';ctx.font='700 46px ui-monospace,Menlo,monospace';
   ctx.fillText(String(Math.round(kmh)),bx+4,by-38);
   ctx.font='500 14px ui-monospace,Menlo,monospace';ctx.fillStyle='#8fa1b5';
@@ -1836,10 +1906,15 @@ function drawHUD(sp){
   }
   ctx.textAlign='left';
   while(msgs.length&&simT>msgs[0].until)msgs.shift();
-  if(paused){
-    ctx.fillStyle='rgba(0,0,0,0.30)';ctx.fillRect(0,0,W,H);
+  // pause overlay eases in/out instead of snapping
+  if(paused||pauseFade>0.01){
+    ctx.fillStyle=`rgba(0,0,0,${(0.34*pauseFade).toFixed(2)})`;ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=pauseFade;
     ctx.fillStyle='#fff';ctx.font='700 28px ui-monospace,monospace';
-    ctx.textAlign='center';ctx.fillText('PAUSED',W/2,H/2);ctx.textAlign='left';
+    ctx.textAlign='center';ctx.fillText('PAUSED',W/2,H/2);
+    ctx.fillStyle='#8fa1b5';ctx.font='500 13px ui-monospace,monospace';
+    ctx.fillText('P resume  ·  H controls  ·  ESC track select',W/2,H/2+26);
+    ctx.textAlign='left';ctx.globalAlpha=1;
   }
   if(showTelemetry)drawTelemetry();
   drawButtons();
@@ -1850,7 +1925,10 @@ function drawButtons(){
     ['MENU',()=>{window.location.href='index.html#tracks';}]];
   if(TRACK_IDS.length>1)defs.push(['TRACK',actTrack]);
   const bw=64,bh=26,gap=6,total=defs.length*bw+(defs.length-1)*gap;
+  // top-centre, but never over the lap-timer (left) or minimap (right) boxes:
+  // on narrow windows the row drops just below the timer box instead
   let x0=W/2-total/2,y0=12;
+  if(x0<254||x0+total>W-MM.w-22)y0=128;
   hudButtons=[];
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='700 12px ui-monospace,Menlo,monospace';
   for(const[label,act]of defs){
@@ -1887,6 +1965,7 @@ function drawTelemetry(){
     ['beta deg',(Math.atan2(car.vy,Math.max(Math.abs(car.vx),1))*57.3).toFixed(1)],
     ['s / lat',car.s.toFixed(0)+' / '+car.lat.toFixed(1)],
     ['surface',car.gravel?'GRAVEL':car.grass?'GRASS':(car.kerb?'KERB':'ASPHALT')],
+    ['ers MJ / kW',(car.ersE/1e6).toFixed(2)+' / '+(car.ersFlow/1000).toFixed(0)+(car.ersMode===2?' in':car.ersMode===1?' out':'')],
     ['nan events',String(car.nanEvents)],
   ];
   ctx.fillStyle='rgba(8,12,18,0.8)';roundRectPath(14,H-24-rows.length*17-14,280,rows.length*17+14,8);ctx.fill();
@@ -1972,6 +2051,9 @@ function audioTick(){
 }
 
 msg('P — pause & controls','#8fd0ff'); // one-time hint instead of a blocking intro
+// fade the canvas in over the first frames so track load doesn't pop/flicker
+cv.style.opacity='0';cv.style.transition='opacity .35s ease';
+let pauseFade=0;
 let last=performance.now(),acc=0;
 function frame(now){
   let fdt=Math.min(0.05,(now-last)/1000);last=now;
@@ -1981,8 +2063,10 @@ function frame(now){
     while(acc>=DT&&steps<8){step(DT);acc-=DT;steps++;}
     updateFX(fdt);
   }
+  pauseFade+=((paused?1:0)-pauseFade)*Math.min(1,fdt*12);
   audioTick();
   render(fdt);
+  if(cv.style.opacity==='0')cv.style.opacity='1'; // first frame is drawn — reveal
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -53,7 +53,7 @@
   #hero .enter{
     margin-top:9vh;font-weight:700;color:#7ee787;letter-spacing:2px;cursor:pointer;
     border:1.5px solid #2f4a38;border-radius:10px;padding:14px 34px;background:rgba(14,24,18,.6);
-    animation:pulse 1.6s ease-in-out infinite;user-select:none;
+    animation:rise .9s .45s ease-out both,pulse 1.6s 1.4s ease-in-out infinite;user-select:none;
   }
   #hero .enter:hover{border-color:#7ee787;}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(126,231,135,.25);}50%{box-shadow:0 0 22px 4px rgba(126,231,135,.28);}}
@@ -68,9 +68,19 @@
   .swatches{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:560px;}
   .sw{
     width:52px;height:52px;border-radius:12px;cursor:pointer;border:2.5px solid #2a3444;
-    transition:transform .1s,border-color .1s;position:relative;
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;position:relative;
   }
-  .sw:hover{transform:translateY(-3px);}
+  .sw:hover{transform:translateY(-3px) scale(1.05);}
+  .sw:active{transform:translateY(-1px) scale(0.97);}
+  /* livery colour crossfades everywhere it appears (preview car, hero car) */
+  #pick .preview path,#hero .carrun path{transition:fill .4s ease;}
+  /* scroll-reveal: sections' content rises in as it enters the viewport */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.on{opacity:1;transform:none;}
+  @media (prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none;}
+    #hero .carrun svg,#hero .speed i{animation:none;display:none;}
+  }
   .sw.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.18);}
   .sw.sel::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;
     color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.8);}
@@ -192,7 +202,7 @@
     </svg>
   </div>
   <h1><span class="f1">F1</span> SIMULATOR</h1>
-  <div class="sub">SEVEN CIRCUITS &middot; REAL GEOMETRY &middot; PURE SPEED</div>
+  <div class="sub">24 CIRCUITS &middot; REAL GEOMETRY &middot; PURE SPEED</div>
   <div class="enter" id="enterBtn">▶ &nbsp;START YOUR ENGINE</div>
   <div class="down">Enter / click &middot; scroll for more</div>
 </section>
@@ -582,6 +592,30 @@
     for(const e of es)if(e.isIntersecting&&e.intersectionRatio>0.5)stage=e.target.id;
   },{threshold:[0.55]});
   document.querySelectorAll('section').forEach(s=>obs.observe(s));
+
+  // ---------- scroll-reveal (staggered rise-in for picker + track cards) ----------
+  (function(){
+    const marks=[
+      ...document.querySelectorAll('#pick .step,#pick h2,#pick .preview,#pick .swatches,#pick .numrow,#pick .go-btn'),
+      ...document.querySelectorAll('#tracks .step,#tracks h2'),
+      ...cards,
+    ];
+    marks.forEach(el=>el.classList.add('reveal'));
+    let ioAlive=false; // IO delivers initial records immediately in healthy browsers
+    const ro=new IntersectionObserver(es=>{
+      ioAlive=true;
+      for(const e of es)if(e.isIntersecting){
+        const el=e.target;
+        const sibs=[...el.parentElement.children].filter(x=>x.classList.contains('reveal'));
+        el.style.transitionDelay=Math.min(sibs.indexOf(el)*60,360)+'ms';
+        el.classList.add('on');ro.unobserve(el);
+      }
+    },{threshold:0.15});
+    marks.forEach(el=>ro.observe(el));
+    // safety net: if the observer never delivers (throttled/odd context),
+    // content must never stay hidden — reveal everything
+    setTimeout(()=>{if(!ioAlive)marks.forEach(el=>el.classList.add('on'));},1200);
+  })();
 
   addEventListener('keydown',e=>{
     if(e.target===numIn)return;
