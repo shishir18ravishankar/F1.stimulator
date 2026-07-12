@@ -135,3 +135,71 @@ Every track validated (no self-intersections except Suzuka's intentional
 bridge crossover, all min radii and leg clearances within engine limits,
 all DRS zones on verified straights) and smoke-tested headless in Chromium.
 The launcher now carries the full 24-circuit 2026 calendar.
+
+## Camera framing + pause-menu audit (17 new tracks)
+
+Requested after PR #3 (real-track-geometry) landed the chase/T-cam/cockpit
+fixes and the "popup -> pause menu" change, both authored against the
+original 7 tracks only. Audited whether either regressed or was left
+inconsistent on the 17 new ones.
+
+**Found and fixed:** the pause-menu commit (`a0956e6`) updated the `#help`
+panel's footer line ("Press any key to drive" -> "P resumes driving · H
+toggles this panel · ESC track select") on the original 7 track pages only
+— the 17 new ones were written before that change landed and still carried
+the stale text, which described behaviour (blocks the drive screen, any key
+dismisses) that no longer existed. Fixed by updating the footer on all 17
+new track HTML files to match. All 24 pages now byte-identical outside of
+title/h1/description text; confirmed structurally (diffed head+CSS+#help
+markup) and functionally (headless run: `#help` hidden on load, `P` shows
+it paused, `P` again hides it and resumes — all 24 pages, no exceptions).
+
+**Camera framing: no fix needed, verified clean.** `updateCamera()` and the
+chase/T-cam/cockpit constants in `engine.js` are 100% track-agnostic — they
+only read `car.x/y/heading/elev` plus hardcoded per-mode offsets, never
+`track.*`, `halfW`, or per-track `pMod`. So framing is guaranteed identical
+by construction across all 24 tracks; there was no code path that could
+have made it diverge. Re-ran the original camera-bounce audit's exact
+methodology (SIM hook, full-throttle launch, 6 s @ 60 fps per camera,
+frame-to-frame *acceleration* of `cam.h`) across all 24 tracks, correcting
+the original 7-track run's own regression risk by checking it too:
+
+| Track | chase | T-cam | cockpit |
+|---|---|---|---|
+| Red Bull Ring | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Monaco | 0.09/0.04 | 0.11/0.05 | 0.11/0.05 |
+| Silverstone | 0.02/0.01 | 0.05/0.01 | 0.05/0.01 |
+| Spa | 0.03/0.01 | 0.04/0.01 | 0.04/0.01 |
+| Monza | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Singapore | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| COTA | 0.15/0.07 | 0.19/0.08 | 0.19/0.08 |
+| Melbourne | 0.00/0.00 | 0.01/0.00 | 0.01/0.00 |
+| Shanghai | 0.01/0.00 | 0.01/0.00 | 0.01/0.00 |
+| Suzuka | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Sakhir | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Jeddah | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Miami | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Montreal | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Barcelona | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Hungaroring | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Zandvoort | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Madrid | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Baku | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Mexico City | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Interlagos | 0.01/0.00 | 0.02/0.00 | 0.02/0.00 |
+| Las Vegas | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Lusail | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+| Yas Marina | 0.00/0.00 | 0.00/0.00 | 0.00/0.00 |
+
+worst/rms mm, all 24 tracks × 3 cameras. Every combination is well inside
+the "sub-millimetre" bar the original audit set (0.6mm worst case on COTA);
+Suzuka's figure-8 bridge crossover and Baku's castle climb — the two new
+tracks that looked riskiest on paper — are both a clean 0.00mm.
+
+(One methodological note for whoever runs this next: measure *acceleration*
+of `cam.h`, i.e. the second frame-to-frame difference, not raw delta — a
+smooth 30+ m climb at speed produces a large first-difference by design
+(the car is genuinely climbing a hill), which isn't bounce. Also, to switch
+camera mode from an injected script/harness, assign the bare `camMode`
+identifier, not `window.camMode` — it's a top-level `let`, so it lives in
+the page's shared script-lexical scope, not on the `window` object.)
