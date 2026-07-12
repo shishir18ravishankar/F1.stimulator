@@ -179,9 +179,33 @@
   }
   .arrow:hover{border-color:#4a6b90;}
   .arrow.left{left:8px;}.arrow.right{right:8px;}
+
+  /* ============ MUSIC CONTROL (top-right) ============ */
+  #music{
+    position:fixed;top:14px;right:16px;z-index:20;display:flex;align-items:center;gap:9px;
+    background:rgba(16,22,32,.88);border:1.5px solid #2a3444;border-radius:10px;
+    padding:7px 12px;user-select:none;transition:border-color .2s;
+  }
+  #music:hover{border-color:#4a6b90;}
+  #music .title{color:#67788c;font-size:10px;letter-spacing:1px;}
+  #musBtn{
+    background:none;border:none;color:#dfe6ee;font-size:18px;line-height:1;
+    cursor:pointer;padding:2px;transition:transform .15s;
+  }
+  #musBtn:hover{transform:scale(1.15);}
+  #musVol{
+    width:86px;accent-color:#7ee787;cursor:pointer;height:4px;
+  }
 </style>
 </head>
 <body>
+
+<!-- ================= MUSIC ================= -->
+<div id="music">
+  <span class="title">THE GAME</span>
+  <button id="musBtn" aria-label="unmute music" title="music on/off">🔇</button>
+  <input id="musVol" type="range" min="0" max="100" value="60" aria-label="music volume">
+</div>
 
 <!-- ================= HERO ================= -->
 <section id="hero">
@@ -632,6 +656,86 @@
       swBox.children[j].click();e.preventDefault();
     }
   });
+
+  // ---------- "THE GAME" home-page music ----------
+  // Plays assets/the-game.mp3 if present (drop the licensed file there);
+  // otherwise falls back to an original Web Audio synth loop, so there is
+  // always something behind the unmute button. Muted autoplay on load,
+  // loops while on this page, dies automatically on navigation to a track.
+  (function(){
+    const btn=document.getElementById('musBtn'),vol=document.getElementById('musVol');
+    const store=(()=>{try{return JSON.parse(localStorage.getItem('f1sim-music'))||{};}catch(e){return{};}})();
+    let muted=true;                                    // spec: always start muted
+    let volume=store.vol!==undefined?store.vol:60;
+    vol.value=volume;
+    const save=()=>{try{localStorage.setItem('f1sim-music',JSON.stringify({vol:volume}));}catch(e){}};
+
+    // --- file player ---
+    const audio=new Audio('assets/the-game.mp3');
+    audio.loop=true;audio.muted=true;audio.volume=volume/100;
+    let fileOk=null; // null unknown, true playable, false missing
+    audio.addEventListener('canplaythrough',()=>{if(fileOk===null)fileOk=true;});
+    audio.addEventListener('error',()=>{fileOk=false;});
+    audio.play().catch(()=>{});                        // muted autoplay is allowed
+
+    // --- synth fallback: an original looping theme (no file, no royalties) ---
+    const synth={ctx:null,gain:null,timer:0,beat:0,
+      start(){
+        if(!this.ctx){
+          this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+          this.gain=this.ctx.createGain();this.gain.connect(this.ctx.destination);
+        }
+        this.ctx.resume();
+        this.gain.gain.value=0.16*(volume/100);
+        if(!this.timer){this.beat=0;this.timer=setInterval(()=>this.tick(),136);} // ~110 BPM 16ths
+      },
+      stop(){if(this.timer){clearInterval(this.timer);this.timer=0;}if(this.ctx)this.ctx.suspend();},
+      setVol(){if(this.gain)this.gain.gain.value=0.16*(volume/100);},
+      note(f,t0,dur,type,g){
+        const o=this.ctx.createOscillator(),e=this.ctx.createGain();
+        o.type=type;o.frequency.value=f;o.connect(e);e.connect(this.gain);
+        e.gain.setValueAtTime(g,t0);e.gain.exponentialRampToValueAtTime(0.001,t0+dur);
+        o.start(t0);o.stop(t0+dur);
+      },
+      tick(){
+        const t=this.ctx.currentTime,b=this.beat%64;
+        const CH=[[110,220,261.6,329.6],[87.3,174.6,261.6,349.2],
+                  [130.8,261.6,329.6,392],[98,196,246.9,392]]; // Am F C G
+        const ch=CH[(b>>4)&3];
+        if(b%8===0)this.note(ch[0],t,0.30,'square',0.30);          // bass
+        if(b%8===4)this.note(ch[0]*1.5,t,0.22,'square',0.18);
+        this.note(ch[1+(b%3)],t,0.12,'triangle',0.22);             // arpeggio
+        if(b%4===2){                                                // hat
+          const n=this.ctx.createBufferSource(),e=this.ctx.createGain();
+          const buf=this.ctx.createBuffer(1,1400,this.ctx.sampleRate),d=buf.getChannelData(0);
+          for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+          n.buffer=buf;n.connect(e);e.connect(this.gain);e.gain.value=0.05;n.start(t);
+        }
+        if(b%32===28)this.note(ch[3]*2,t,0.5,'sawtooth',0.06);     // sparkle
+        this.beat++;
+      }};
+
+    function apply(){
+      btn.textContent=muted||volume===0?'🔇':volume<50?'🔉':'🔊';
+      btn.setAttribute('aria-label',muted?'unmute music':'mute music');
+      audio.volume=volume/100;synth.setVol();
+      if(muted){
+        audio.muted=true;synth.stop();
+      }else if(fileOk!==false){
+        audio.muted=false;audio.play().catch(()=>{});synth.stop();
+      }else{
+        audio.muted=true;synth.start();
+      }
+      save();
+    }
+    btn.onclick=()=>{muted=!muted;apply();};
+    vol.oninput=()=>{volume=+vol.value;apply();};
+    // entering a track navigates away — make sure sound stops immediately,
+    // including the back/forward-cache case where the page isn't unloaded
+    addEventListener('pagehide',()=>{audio.pause();synth.stop();});
+    addEventListener('pageshow',()=>{if(muted)audio.muted=true;audio.play().catch(()=>{});if(!muted)apply();});
+    apply();
+  })();
 </script>
 </body>
 </html>
