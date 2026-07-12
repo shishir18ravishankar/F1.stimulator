@@ -63,6 +63,15 @@ on GitHub (local `main` carries the same commits). Merge that branch into
     `{primary:[r,g,b], accent:[r,g,b], number}` — read in `engine.js`, the
     home-page picker (task 6) writes it.
 
+- **Task 6: home page redesigned** — three full-screen stages in
+  `index.html`: (1) animated hero (CSS speed-lines, glowing horizon, low-poly
+  car crossing the screen, pulsing START); (2) car colour picker — 8 liveries
+  + race number with a live side-view preview, saved to
+  `localStorage('f1sim-livery')` which `engine.js` reads for the 3D car and
+  cockpit overlay; (3) horizontal scroll-snap track carousel (7 cards, real
+  outlines, arrows + ←/→ + Enter). In-game ESC/MENU now return to
+  `index.html#tracks` so you land on the circuit list, not the hero.
+
 ## Not started
 
 - Task 5 leftovers: none. (tyre inner caps/sidewall depth, livery stripe + number,

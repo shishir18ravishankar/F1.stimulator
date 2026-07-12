@@ -3,26 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>F1 Simulator — Choose Track</title>
+<title>F1 Simulator</title>
 <style>
-  :root{color-scheme:dark;}
+  :root{color-scheme:dark;--car:#c61e1a;}
   *{box-sizing:border-box;}
-  html,body{margin:0;height:100%;}
+  html,body{margin:0;}
+  html{scroll-behavior:smooth;}
   body{
-    background:radial-gradient(1200px 700px at 50% -10%,#16202e,#0a0d12 60%);
-    color:#dfe6ee;font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:100%;padding:32px;gap:26px;text-align:center;
+    background:#0a0d12;color:#dfe6ee;
+    font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;
   }
-  h1{font-size:34px;letter-spacing:3px;margin:0;color:#fff;}
-  h1 .f1{color:#e8332a;}
-  .sub{color:#8fa1b5;font-size:13px;margin-top:-14px;letter-spacing:1px;}
-  .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+  section{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;position:relative;overflow:hidden;}
+
+  /* ============ HERO ============ */
+  #hero{background:radial-gradient(1400px 800px at 50% -10%,#16202e,#0a0d12 62%);}
+  /* animated speed lines sweeping past */
+  #hero .speed{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+  #hero .speed i{
+    position:absolute;height:2px;border-radius:2px;
+    background:linear-gradient(90deg,rgba(232,51,42,0),rgba(232,51,42,.75),rgba(255,255,255,0));
+    animation:dash linear infinite;
+  }
+  @keyframes dash{from{transform:translateX(110vw);}to{transform:translateX(-130vw);}}
+  /* glowing track horizon */
+  #hero .horizon{
+    position:absolute;left:0;right:0;bottom:16vh;height:2px;
+    background:linear-gradient(90deg,transparent,#e8332a 30%,#ffb3ad 50%,#e8332a 70%,transparent);
+    filter:blur(1px);opacity:.7;animation:hum 3s ease-in-out infinite;
+  }
+  @keyframes hum{0%,100%{opacity:.45;}50%{opacity:.85;}}
+  /* the car crossing the screen */
+  #hero .carrun{position:absolute;left:0;right:0;bottom:calc(16vh + 4px);height:70px;pointer-events:none;}
+  #hero .carrun svg{
+    position:absolute;bottom:0;width:190px;height:64px;
+    animation:cross 5.2s cubic-bezier(.35,.05,.3,1) infinite;
+    filter:drop-shadow(0 6px 8px rgba(0,0,0,.55));
+  }
+  @keyframes cross{
+    0%{transform:translateX(-30vw) ;}
+    46%{transform:translateX(44vw);}
+    54%{transform:translateX(46vw);}
+    100%{transform:translateX(115vw);}
+  }
+  h1{font-size:clamp(40px,7vw,84px);letter-spacing:6px;margin:0;color:#fff;
+     animation:rise .9s ease-out both;}
+  h1 .f1{color:#e8332a;text-shadow:0 0 26px rgba(232,51,42,.55);}
+  @keyframes rise{from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:none;}}
+  #hero .sub{color:#8fa1b5;font-size:15px;letter-spacing:3px;margin-top:8px;animation:rise .9s .25s ease-out both;}
+  #hero .enter{
+    margin-top:9vh;font-weight:700;color:#7ee787;letter-spacing:2px;cursor:pointer;
+    border:1.5px solid #2f4a38;border-radius:10px;padding:14px 34px;background:rgba(14,24,18,.6);
+    animation:pulse 1.6s ease-in-out infinite;user-select:none;
+  }
+  #hero .enter:hover{border-color:#7ee787;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(126,231,135,.25);}50%{box-shadow:0 0 22px 4px rgba(126,231,135,.28);}}
+  .down{position:absolute;bottom:22px;color:#67788c;font-size:12px;letter-spacing:1px;}
+
+  /* ============ COLOUR PICKER ============ */
+  #pick{background:radial-gradient(1100px 650px at 50% 115%,#141c28,#0a0d12 60%);}
+  h2{font-size:26px;letter-spacing:3px;color:#fff;margin:0 0 4px;}
+  .step{color:#67788c;font-size:12px;letter-spacing:2px;margin-bottom:26px;}
+  #pick .preview{width:min(420px,80vw);margin:10px 0 26px;}
+  #pick .preview svg{width:100%;height:auto;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5));}
+  .swatches{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:560px;}
+  .sw{
+    width:52px;height:52px;border-radius:12px;cursor:pointer;border:2.5px solid #2a3444;
+    transition:transform .1s,border-color .1s;position:relative;
+  }
+  .sw:hover{transform:translateY(-3px);}
+  .sw.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.18);}
+  .sw.sel::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;
+    color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.8);}
+  .numrow{margin-top:24px;display:flex;gap:12px;align-items:center;color:#8fa1b5;font-size:13px;}
+  .numrow input{
+    width:76px;background:#10161f;color:#fff;border:1.5px solid #2a3444;border-radius:8px;
+    font:700 22px ui-monospace,monospace;text-align:center;padding:8px 4px;outline:none;
+  }
+  .numrow input:focus{border-color:#4a6b90;}
+  .go-btn{
+    margin-top:30px;color:#7ee787;font-weight:700;letter-spacing:2px;cursor:pointer;
+    border:1.5px solid #2f4a38;border-radius:10px;padding:13px 40px;background:rgba(14,24,18,.6);user-select:none;
+  }
+  .go-btn:hover{border-color:#7ee787;box-shadow:0 0 18px rgba(126,231,135,.25);}
+
+  /* ============ TRACKS (horizontal scroll) ============ */
+  #tracks{background:radial-gradient(1200px 700px at 50% -10%,#16202e,#0a0d12 60%);justify-content:center;}
+  .scrollwrap{position:relative;width:100%;max-width:1500px;}
+  .scroller{
+    display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x proximity;
+    padding:18px 8vw 26px;scrollbar-width:thin;scrollbar-color:#2a3444 transparent;
+  }
+  .scroller::-webkit-scrollbar{height:8px;}
+  .scroller::-webkit-scrollbar-thumb{background:#2a3444;border-radius:4px;}
   a.card{
-    text-decoration:none;color:inherit;display:block;width:300px;
+    text-decoration:none;color:inherit;display:block;flex:0 0 300px;scroll-snap-align:center;
     background:rgba(16,22,32,.85);border:1.5px solid #2a3444;border-radius:14px;
     padding:22px 22px 20px;transition:transform .12s,border-color .12s,box-shadow .12s;
-    outline:none;
+    outline:none;text-align:center;
   }
   a.card:hover,a.card:focus{
     transform:translateY(-4px);border-color:#4a6b90;
@@ -36,9 +113,9 @@
   a.card.sgp:hover,a.card.sgp:focus{border-color:#9a6bff;box-shadow:0 10px 30px rgba(154,107,255,.25);}
   a.card.cota:hover,a.card.cota:focus{border-color:#d9455f;box-shadow:0 10px 30px rgba(217,69,95,.22);}
   .flag{font-size:30px;line-height:1;}
-  .name{font-size:21px;font-weight:700;color:#fff;margin:12px 0 2px;letter-spacing:1px;}
+  .name{font-size:20px;font-weight:700;color:#fff;margin:12px 0 2px;letter-spacing:1px;}
   .loc{color:#8fa1b5;font-size:12px;margin-bottom:12px;}
-  svg{width:100%;height:96px;display:block;margin:6px 0 12px;}
+  .card svg{width:100%;height:96px;display:block;margin:6px 0 12px;}
   .rbr svg path{stroke:#e8332a;}
   .mco svg path{stroke:#c8a24a;}
   .sil svg path{stroke:#4f8fe8;stroke-width:3.5;}
@@ -46,20 +123,79 @@
   .mza svg path{stroke:#ef8f3a;stroke-width:3.5;}
   .sgp svg path{stroke:#9a6bff;stroke-width:3.5;}
   .cota svg path{stroke:#d9455f;stroke-width:3.5;}
-  svg path{fill:none;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+  .card svg path{fill:none;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
   .stats{display:flex;justify-content:space-around;font-size:11px;color:#a9b6c4;border-top:1px solid #263040;padding-top:10px;}
   .stats b{color:#dfe6ee;font-size:13px;display:block;}
   .go{color:#7ee787;font-size:12px;margin-top:12px;font-weight:700;}
-  .hint{color:#67788c;font-size:12px;}
+  .hint{color:#67788c;font-size:12px;margin-top:10px;}
+  .arrow{
+    position:absolute;top:50%;transform:translateY(-50%);z-index:3;cursor:pointer;user-select:none;
+    width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(16,22,32,.9);border:1.5px solid #2a3444;color:#dfe6ee;font-size:20px;
+  }
+  .arrow:hover{border-color:#4a6b90;}
+  .arrow.left{left:8px;}.arrow.right{right:8px;}
 </style>
 </head>
 <body>
-  <div>
-    <h1><span class="f1">F1</span> SIMULATOR</h1>
-    <div class="sub">choose your circuit</div>
-  </div>
 
-  <div class="cards">
+<!-- ================= HERO ================= -->
+<section id="hero">
+  <div class="speed" id="speedLines"></div>
+  <div class="horizon"></div>
+  <div class="carrun">
+    <svg viewBox="0 0 190 64" aria-hidden="true">
+      <!-- low-poly side-view F1 car, uses the picked livery colour -->
+      <g>
+        <path d="M4 46 L38 40 L60 36 L74 26 L96 24 L112 30 L150 34 L170 34 L170 22 L176 22 L176 42 L186 44 L186 50 L4 50 Z" fill="var(--car)"/>
+        <path d="M74 26 L96 24 L104 27 L84 30 Z" fill="#0d0e12"/>
+        <path d="M96 20 Q104 12 112 20 L112 30 L96 24 Z" fill="none" stroke="#0d0e12" stroke-width="4"/>
+        <rect x="2" y="38" width="8" height="10" fill="#16161a"/>
+        <rect x="168" y="18" width="12" height="4" fill="#16161a"/>
+        <circle cx="52" cy="50" r="13" fill="#101013"/><circle cx="52" cy="50" r="6" fill="#3a3c44"/>
+        <circle cx="148" cy="50" r="13" fill="#101013"/><circle cx="148" cy="50" r="6" fill="#3a3c44"/>
+      </g>
+    </svg>
+  </div>
+  <h1><span class="f1">F1</span> SIMULATOR</h1>
+  <div class="sub">SEVEN CIRCUITS &middot; REAL GEOMETRY &middot; PURE SPEED</div>
+  <div class="enter" id="enterBtn">▶ &nbsp;START YOUR ENGINE</div>
+  <div class="down">Enter / click &middot; scroll for more</div>
+</section>
+
+<!-- ================= COLOUR PICKER ================= -->
+<section id="pick">
+  <div class="step">STEP 1 / 2</div>
+  <h2>PICK YOUR CAR</h2>
+  <div class="preview">
+    <svg viewBox="0 0 380 128" aria-hidden="true">
+      <g>
+        <path d="M8 92 L76 80 L120 72 L148 52 L192 48 L224 60 L300 68 L340 68 L340 44 L352 44 L352 84 L372 88 L372 100 L8 100 Z" fill="var(--car)"/>
+        <path d="M148 52 L192 48 L208 54 L168 60 Z" fill="#0d0e12"/>
+        <path d="M192 40 Q208 24 224 40 L224 60 L192 48 Z" fill="none" stroke="#0d0e12" stroke-width="7"/>
+        <rect x="4" y="76" width="16" height="20" fill="#16161a"/>
+        <rect x="336" y="36" width="24" height="8" fill="#16161a"/>
+        <circle cx="104" cy="100" r="26" fill="#101013"/><circle cx="104" cy="100" r="12" fill="#3a3c44"/><circle cx="104" cy="100" r="5" fill="#181a20"/>
+        <circle cx="296" cy="100" r="26" fill="#101013"/><circle cx="296" cy="100" r="12" fill="#3a3c44"/><circle cx="296" cy="100" r="5" fill="#181a20"/>
+        <circle cx="150" cy="74" r="13" fill="#f0f0ee"/>
+        <text id="pvNum" x="150" y="79" text-anchor="middle" font="700 15px ui-monospace" font-weight="700" font-size="15" fill="#15151a" font-family="ui-monospace,monospace">1</text>
+      </g>
+    </svg>
+  </div>
+  <div class="swatches" id="swatches"></div>
+  <div class="numrow">RACE NUMBER <input id="numIn" type="number" min="1" max="99" value="1"></div>
+  <div class="go-btn" id="toTracks">CHOOSE CIRCUIT →</div>
+</section>
+
+<!-- ================= TRACKS ================= -->
+<section id="tracks">
+  <div class="step">STEP 2 / 2</div>
+  <h2>CHOOSE YOUR CIRCUIT</h2>
+  <div class="scrollwrap">
+    <div class="arrow left" id="arrL">←</div>
+    <div class="arrow right" id="arrR">→</div>
+    <div class="scroller" id="scroller">
+
     <a class="card rbr" href="redbull-ring-v2.html">
       <div class="flag">🇦🇹</div>
       <div class="name">RED BULL RING</div>
@@ -136,19 +272,110 @@
       <div class="stats"><div><b>5.513 km</b>20 turns</div><div><b>19%</b>T1 climb</div><div><b>CCW</b>1 km straight</div></div>
       <div class="go">▶ DRIVE</div>
     </a>
-  </div>
 
-  <div class="hint">click a circuit &middot; or use &larr; &rarr; and <b>Enter</b></div>
+    </div>
+  </div>
+  <div class="hint">drag / scroll sideways &middot; or use &larr; &rarr; and <b>Enter</b></div>
+</section>
 
 <script>
-  // keyboard navigation: arrows to move, Enter to open
-  const cards=[...document.querySelectorAll('a.card')];
+  // ---------- animated speed lines (randomised once) ----------
+  (function(){
+    const box=document.getElementById('speedLines');
+    for(let i=0;i<26;i++){
+      const s=document.createElement('i');
+      const w=60+Math.random()*240;
+      s.style.width=w+'px';
+      s.style.top=(3+Math.random()*90)+'%';
+      s.style.animationDuration=(0.9+Math.random()*2.2)+'s';
+      s.style.animationDelay=(-Math.random()*3)+'s';
+      s.style.opacity=(0.12+Math.random()*0.5).toFixed(2);
+      box.appendChild(s);
+    }
+  })();
+
+  // ---------- livery picker ----------
+  const COLORS=[
+    ['Rosso',       [198,30,26]],
+    ['Papaya',      [252,128,10]],
+    ['Racing Blue', [30,90,205]],
+    ['Petronas Teal',[26,160,150]],
+    ['Silver',      [176,180,188]],
+    ['British Green',[18,105,64]],
+    ['Midnight',    [30,32,40]],
+    ['Acid Yellow', [226,196,36]],
+  ];
+  const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
+  function loadLivery(){
+    try{return JSON.parse(localStorage.getItem('f1sim-livery'))||{};}catch(e){return{};}
+  }
+  let livery=Object.assign({primary:[198,30,26],number:1},loadLivery());
+  function saveLivery(){
+    livery.accent=lum(livery.primary)>0.62?[30,32,38]:[230,230,226];
+    localStorage.setItem('f1sim-livery',JSON.stringify(livery));
+    document.documentElement.style.setProperty('--car',`rgb(${livery.primary.join(',')})`);
+    document.getElementById('pvNum').textContent=livery.number;
+  }
+  const swBox=document.getElementById('swatches');
+  COLORS.forEach(([name,rgb])=>{
+    const d=document.createElement('div');
+    d.className='sw';d.title=name;
+    d.style.background=`rgb(${rgb.join(',')})`;
+    d.onclick=()=>{
+      livery.primary=rgb;saveLivery();
+      [...swBox.children].forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+    };
+    if(String(rgb)===String(livery.primary))d.classList.add('sel');
+    swBox.appendChild(d);
+  });
+  const numIn=document.getElementById('numIn');
+  numIn.value=livery.number;
+  numIn.oninput=()=>{
+    const v=Math.max(1,Math.min(99,parseInt(numIn.value)||1));
+    livery.number=v;saveLivery();
+  };
+  saveLivery(); // reflect stored (or default) choice immediately
+
+  // ---------- stage navigation ----------
+  const go=id=>document.getElementById(id).scrollIntoView({behavior:'smooth'});
+  document.getElementById('enterBtn').onclick=()=>go('pick');
+  document.getElementById('toTracks').onclick=()=>go('tracks');
+  if(location.hash==='#tracks')setTimeout(()=>document.getElementById('tracks').scrollIntoView(),0);
+
+  // ---------- track carousel ----------
+  const scroller=document.getElementById('scroller');
+  const cards=[...scroller.querySelectorAll('a.card')];
   let sel=0;
-  cards[0].focus();
+  function focusCard(i){
+    sel=(i+cards.length)%cards.length;
+    cards[sel].focus({preventScroll:true});
+    cards[sel].scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+  }
+  document.getElementById('arrL').onclick=()=>focusCard(sel-1);
+  document.getElementById('arrR').onclick=()=>focusCard(sel+1);
+
+  // which section is on screen?
+  let stage='hero';
+  const obs=new IntersectionObserver(es=>{
+    for(const e of es)if(e.isIntersecting&&e.intersectionRatio>0.5)stage=e.target.id;
+  },{threshold:[0.55]});
+  document.querySelectorAll('section').forEach(s=>obs.observe(s));
+
   addEventListener('keydown',e=>{
-    if(e.key==='ArrowRight'||e.key==='ArrowDown'){sel=(sel+1)%cards.length;cards[sel].focus();e.preventDefault();}
-    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){sel=(sel-1+cards.length)%cards.length;cards[sel].focus();e.preventDefault();}
-    else if(e.key==='Enter'){cards[sel].click();}
+    if(e.target===numIn)return;
+    if(e.key==='Enter'){
+      if(stage==='hero'){go('pick');e.preventDefault();}
+      else if(stage==='pick'){go('tracks');e.preventDefault();}
+      else{cards[sel].click();}
+    }
+    else if(stage==='tracks'&&(e.key==='ArrowRight')){focusCard(sel+1);e.preventDefault();}
+    else if(stage==='tracks'&&(e.key==='ArrowLeft')){focusCard(sel-1);e.preventDefault();}
+    else if(stage==='pick'&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
+      const i=COLORS.findIndex(c=>String(c[1])===String(livery.primary));
+      const j=(i+(e.key==='ArrowRight'?1:-1)+COLORS.length)%COLORS.length;
+      swBox.children[j].click();e.preventDefault();
+    }
   });
 </script>
 </body>

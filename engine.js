@@ -644,7 +644,7 @@ function setKey(e,v){
     if(k==='n'&&TRACK_IDS.length>1)actTrack();
     if(k==='m')actAudio();
     if(k==='h'){helpShown=true;helpEl.style.display='block';}
-    if(e.key==='Escape')window.location.href='index.html'; // back to track select
+    if(e.key==='Escape')window.location.href='index.html#tracks'; // back to track select
   }
   if(used)e.preventDefault();
 }
@@ -1843,7 +1843,7 @@ function drawHUD(sp){
 // clickable on-screen buttons (top-centre). Also registers hit-boxes for the mouse.
 function drawButtons(){
   const defs=[['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset],
-    ['MENU',()=>{window.location.href='index.html';}]];
+    ['MENU',()=>{window.location.href='index.html#tracks';}]];
   if(TRACK_IDS.length>1)defs.push(['TRACK',actTrack]);
   const bw=64,bh=26,gap=6,total=defs.length*bw+(defs.length-1)*gap;
   let x0=W/2-total/2,y0=12;
