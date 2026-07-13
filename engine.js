@@ -639,6 +639,16 @@ function lapLogic(prevS,s,lat){
 }
 
 const key={up:false,down:false,left:false,right:false};
+// mobile/touch: primary pointer is coarse (phones/tablets). Desktop keeps the
+// keyboard path untouched. `?touch=1` / `?touch=0` force it on/off (handy on
+// touchscreen laptops and for testing) but the default is pure auto-detect.
+// touchSteerAxis is the analog steering-wheel input ([-1,1]); null = arrows/kbd.
+const TOUCH=(()=>{
+  const q=new URLSearchParams(location.search).get('touch');
+  if(q==='1'||q==='0')return q==='1';
+  return(matchMedia&&matchMedia('(pointer: coarse)').matches)||false;
+})();
+let touchSteerAxis=null;
 let paused=false,showTelemetry=false,helpShown=false,camMode=0; // 0 chase 1 T-cam 2 cockpit
 const CAM_NAMES=['CHASE CAM','T-CAM','COCKPIT CAM'];
 const helpEl=document.getElementById('help');
@@ -732,7 +742,9 @@ const DT=1/120;
 function step(dt,surf){
   simT+=dt;
   const spd=Math.hypot(car.vx,car.vy);
-  const st=(key.left?-1:0)+(key.right?1:0);
+  // analog steering wheel (touch) feeds a proportional target; otherwise the
+  // digital left/right from keyboard or the on-screen arrow buttons
+  const st=touchSteerAxis!==null?touchSteerAxis:(key.left?-1:0)+(key.right?1:0);
   const pressRate=3.2/(1+spd/60); // gentler lock-to-lock at speed
   const sRate=st!==0?(Math.sign(st)!==Math.sign(car.steer)&&car.steer!==0?9.0:pressRate):6.0;
   car.steer+=clamp(st-car.steer,-sRate*dt,sRate*dt);
@@ -1824,7 +1836,9 @@ function drawHUD(sp){
   let gear=1;
   for(let g=7;g>=0;g--)if(kmh>=GEAR_KMH[g]){gear=g+1;break;}
   if(car.reverse)gear='R';
-  const bx=22,by=H-24;
+  // desktop: bottom-left. touch: bottom-CENTRE, clear of the steering control
+  // (bottom-left) and the pedals (bottom-right).
+  const bx=TOUCH?Math.round(W/2-126):22,by=H-24;
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
   ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(bx-10,by-118,272,132,10);ctx.fill();
   // ERS battery gauge: level bar + state (yellow deploy / green harvest)
@@ -1923,14 +1937,17 @@ function drawHUD(sp){
   ctx.beginPath();ctx.arc(car.x*MM.s+MM.ox,car.y*MM.s+MM.oy,4,0,TAU);ctx.fill();
   ctx.restore();
 
-  const fx=W-150,fy=H-70;
-  ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(fx-52,fy-52,190,104,10);ctx.fill();
-  drawFC(fx,fy,'F',car.utilF,car.slideF);
-  drawFC(fx+84,fy,'R',car.utilR,car.slideR);
+  // grip circles sit bottom-right — hidden on touch, where the pedals live there
+  if(!TOUCH){
+    const fx=W-150,fy=H-70;
+    ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(fx-52,fy-52,190,104,10);ctx.fill();
+    drawFC(fx,fy,'F',car.utilF,car.slideF);
+    drawFC(fx+84,fy,'R',car.utilR,car.slideR);
+  }
 
   if((car.grass||car.gravel)&&Math.abs(car.vx)>3){
     ctx.fillStyle='#ffb35e';ctx.font='700 14px ui-monospace,monospace';
-    ctx.textAlign='center';ctx.fillText(car.gravel?'GRAVEL!':'OFF TRACK',W/2,H-46);ctx.textAlign='left';
+    ctx.textAlign='center';ctx.fillText(car.gravel?'GRAVEL!':'OFF TRACK',W/2,TOUCH?H-150:H-46);ctx.textAlign='left';
   }
   ctx.textAlign='center';
   let yy=64;
@@ -2094,6 +2111,7 @@ function audioTick(){
 msg('P — pause & controls','#8fd0ff'); // one-time hint instead of a blocking intro
 // fade the canvas in over the first frames so track load doesn't pop/flicker
 cv.style.opacity='0';cv.style.transition='opacity .35s ease';
+if(TOUCH)cv.style.touchAction='none'; // no scroll/zoom while driving on mobile
 let pauseFade=0;
 let last=performance.now(),acc=0;
 function frame(now){
@@ -2112,7 +2130,120 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
+// =========================================================================
+// MOBILE TOUCH CONTROLS — injected only on coarse-pointer (phone/tablet).
+// Right: accelerator + brake pedals (stacked). Left: steering, switchable
+// between arrow buttons and a drag wheel (choice remembered). Desktop keeps
+// the keyboard path; these DOM controls set the same key.* / touchSteerAxis.
+// =========================================================================
+if(TOUCH){(function(){
+  const el=(t,c,html)=>{const n=document.createElement(t);if(c)n.className=c;if(html!=null)n.innerHTML=html;return n;};
+  const style=document.createElement('style');
+  style.textContent=`
+  #tc{position:fixed;inset:0;z-index:30;pointer-events:none;touch-action:none;
+    font:700 12px ui-monospace,Menlo,monospace;color:#cfd8e3;user-select:none;-webkit-user-select:none;}
+  #tc *{pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+  /* pedals fill the right column BELOW the minimap (top:200) so they never
+     overlap it, and shrink to fit on short landscape phones */
+  #tc .pedals{position:absolute;right:16px;top:200px;bottom:16px;width:94px;
+    display:flex;flex-direction:column;justify-content:flex-end;gap:10px;}
+  #tc .pedal{width:94px;height:min(116px,calc((100% - 10px)/2));min-height:72px;
+    border-radius:16px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:5px;border:2px solid;backdrop-filter:blur(2px);
+    transition:transform .05s ease,background .06s ease;letter-spacing:1px;}
+  #tc .pedal .ico{font-size:26px;line-height:1;}
+  #tc .gas{background:rgba(30,140,66,.30);border-color:rgba(74,210,120,.85);color:#8ef0a8;}
+  #tc .brk{background:rgba(175,42,38,.30);border-color:rgba(240,110,100,.85);color:#ffa89f;}
+  #tc .gas.on{background:rgba(55,214,122,.62);color:#04120a;transform:scale(.93);}
+  #tc .brk.on{background:rgba(255,90,79,.62);color:#160404;transform:scale(.93);}
+  #tc .steer{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;
+    align-items:flex-start;gap:10px;}
+  #tc .toggle{padding:7px 11px;border-radius:9px;background:rgba(16,22,32,.72);
+    border:1.5px solid rgba(120,150,180,.55);color:#cfd8e3;font-size:11px;letter-spacing:.5px;}
+  #tc .toggle:active{background:rgba(40,60,84,.85);}
+  #tc .arrows{display:flex;gap:12px;}
+  #tc .arrow{width:80px;height:98px;border-radius:16px;background:rgba(16,22,32,.5);
+    border:2px solid rgba(120,150,180,.55);display:flex;align-items:center;justify-content:center;
+    font-size:38px;color:#dfe6ee;transition:transform .05s,background .06s;}
+  #tc .arrow.on{background:rgba(79,160,255,.55);border-color:#4fd0ff;color:#eaf6ff;transform:scale(.95);}
+  #tc .wheel{width:154px;height:154px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 50% 42%,rgba(64,74,88,.5),rgba(14,18,26,.72));
+    border:7px solid rgba(150,160,175,.78);box-shadow:0 6px 18px rgba(0,0,0,.4),inset 0 0 18px rgba(0,0,0,.5);
+    transition:transform .18s ease;}
+  #tc .wheel.grab{transition:none;}
+  #tc .wheel .hub{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;
+    border-radius:50%;background:rgba(20,26,36,.92);border:2px solid rgba(150,160,175,.5);}
+  #tc .wheel .spoke{position:absolute;left:50%;top:50%;height:6px;width:120px;margin:-3px 0 0 -60px;
+    background:rgba(150,160,175,.5);transform-origin:50% 50%;border-radius:3px;}
+  #tc .hidden{display:none!important;}`;
+  document.head.appendChild(style);
+
+  const root=el('div');root.id='tc';
+  // --- pedals (right): accelerator on top, brake below ---
+  const pedals=el('div','pedals');
+  const gas=el('div','pedal gas','<span class="ico">&#9650;</span><span>GAS</span>');
+  const brk=el('div','pedal brk','<span class="ico">&#9660;</span><span>BRAKE</span>');
+  pedals.appendChild(gas);pedals.appendChild(brk);
+  // --- steering (left): toggle + arrows or wheel ---
+  const steer=el('div','steer');
+  const toggle=el('button','toggle','');
+  const arrows=el('div','arrows');
+  const aL=el('div','arrow','&lsaquo;'),aR=el('div','arrow','&rsaquo;');
+  arrows.appendChild(aL);arrows.appendChild(aR);
+  const wheel=el('div','wheel','<div class="hub"></div>');
+  for(let i=0;i<3;i++){const s=el('div','spoke');s.style.transform='rotate('+(i*60)+'deg)';wheel.appendChild(s);}
+  steer.appendChild(toggle);steer.appendChild(arrows);steer.appendChild(wheel);
+  root.appendChild(pedals);root.appendChild(steer);
+  document.body.appendChild(root);
+
+  const wake=()=>{SND.init();SND.resume();dismissHelp();};
+  // press-and-hold for the digital controls (pedals + arrows), pointer-captured
+  function hold(node,on,off){
+    node.addEventListener('pointerdown',e=>{e.preventDefault();wake();
+      try{node.setPointerCapture(e.pointerId);}catch(_){}
+      node.classList.add('on');on();});
+    const up=()=>{node.classList.remove('on');off();};
+    node.addEventListener('pointerup',up);
+    node.addEventListener('pointercancel',up);
+  }
+  hold(gas,()=>key.up=true,()=>key.up=false);
+  hold(brk,()=>key.down=true,()=>key.down=false);
+  hold(aL,()=>key.left=true,()=>key.left=false);
+  hold(aR,()=>key.right=true,()=>key.right=false);
+
+  // --- steering wheel: drag left/right -> proportional axis; release recenters ---
+  let wPid=null,wStart=0;
+  wheel.addEventListener('pointerdown',e=>{e.preventDefault();wake();
+    wPid=e.pointerId;wStart=e.clientX;wheel.classList.add('grab');
+    try{wheel.setPointerCapture(e.pointerId);}catch(_){}});
+  wheel.addEventListener('pointermove',e=>{if(e.pointerId!==wPid)return;
+    const ax=Math.max(-1,Math.min(1,(e.clientX-wStart)/70));
+    touchSteerAxis=ax;wheel.style.transform='rotate('+(ax*70)+'deg)';});
+  const wEnd=e=>{if(e.pointerId!==wPid)return;wPid=null;touchSteerAxis=null;
+    wheel.classList.remove('grab');wheel.style.transform='rotate(0deg)';};
+  wheel.addEventListener('pointerup',wEnd);
+  wheel.addEventListener('pointercancel',wEnd);
+
+  // --- steering-style toggle (remembered) ---
+  let styleMode=(()=>{try{return localStorage.getItem('f1sim-steer')||'arrows';}catch(e){return'arrows';}})();
+  function applyStyle(){
+    const w=styleMode==='wheel';
+    arrows.classList.toggle('hidden',w);
+    wheel.classList.toggle('hidden',!w);
+    toggle.textContent=(w?'STEER: WHEEL':'STEER: ARROWS')+'  ⇆';
+    key.left=key.right=false;touchSteerAxis=null;      // reset on switch
+    aL.classList.remove('on');aR.classList.remove('on');
+    wheel.style.transform='rotate(0deg)';
+    try{localStorage.setItem('f1sim-steer',styleMode);}catch(e){}
+  }
+  toggle.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();
+    styleMode=styleMode==='wheel'?'arrows':'wheel';applyStyle();});
+  applyStyle();
+  window.__touchUI={root,gas,brk,aL,aR,wheel,toggle,get style(){return styleMode;}}; // for verification
+})();}
+
 window.SIM={car,track,P,timing,key,placeCarAtS,switchTrack,actOvertake,
+  TOUCH,get touchSteerAxis(){return touchSteerAxis;},
   get trackRef(){return track;},
   get sceneRef(){return scenery;},
   tick:(n,surf)=>{for(let i=0;i<n;i++)step(DT,surf);},
