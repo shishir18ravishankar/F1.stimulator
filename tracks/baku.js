@@ -6,7 +6,7 @@
 // S/F line), so the plan view matches the official track map. Points are
 // [x,y,elev]; the old town sits ~22 m above the boulevard.
 // Key corners: the 90-degree T1, the castle squeeze (T8-T12), downhill T15.
-// Elevation: old town ~22 m above the flat seafront boulevard. DRS: 2 zones.
+// Elevation: old town ~22 m above the flat seafront boulevard. Active aero: automatic Straight/Corner Mode.
 // Scenery: city seaside - Caspian promenade, medieval fortress walls, towers.
 const BAK_CTRL=[
   [600,562,2],[700,564,2],[790,566,2],       // S/F on Neftchilar Avenue
@@ -37,13 +37,12 @@ const BAK_CTRL=[
   [200,470,10],
   [204,500,7],[212,524,5],[228,544,3.6],     // T16 - opens onto the seafront:
   [252,556,2.8],[280,560,2.4],               // from here it's ~2.2 km flat-out
-  [360,560,2.2],[440,560,2.1],[520,561,2],   // along the Caspian (DRS)
+  [360,560,2.2],[440,560,2.1],[520,561,2],   // along the Caspian (straight)
 ];
 const TRACKS={
   bak:{id:'bak',tag:'BAK',name:'BAKU',halfW:5.6,lap:6003,ctrl:BAK_CTRL,
     sf:[600,562],style:'city',walled:true,traps:false,
-    zonesS:[],                          // both DRS zones live on the 2.2 km run
-    zoneAnchors:[],paved:[],            // (covered by the wrap-around zone)
+    paved:[],            // (covered by the wrap-around zone)
     ground:[120,116,106],               // old-city stone and plazas
     pMod:{CdA:1.40,ClA:2.80,mu:1.57,steerMax:0.37,kerbAggr:1.1}, // skinny wings + castle agility
     atmo:{skyTop:'#6f9cc8',skyMid:'#c2d0da',skyBot:'#eee8da',fog:[198,200,198]}, // Caspian haze

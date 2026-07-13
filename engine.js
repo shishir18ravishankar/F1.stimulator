@@ -19,7 +19,7 @@
    Renderer: pinhole projection, painter-sorted world list (road, kerbs,
    gravel traps, mown-grass aprons, trees, grandstands, pit wall, barriers),
    multi-part shaded car mesh with octagonal wheels, halo, helmet, animated
-   DRS flap, body roll/pitch. Cameras: chase / T-cam / cockpit.
+   active-aero flaps, body roll/pitch. Cameras: chase / T-cam / cockpit.
    ========================================================================= */
 
 // ---------- utils ----------
@@ -52,7 +52,9 @@ const P={
   ersHarvestPart:35000,              // part-throttle trickle harvest
   brakeForce:34000, brakeBias:0.58, engineBrake:700,
   CdA:1.56, ClA:3.30, aeroBalance:0.44, rho:1.20,
-  drsDrag:0.84, drsDF:0.78,
+  // 2026 active aero: Straight Mode trims BOTH wings (front+rear together)
+  aeroDrag:0.80, aeroDF:0.72,
+  ersPowerOT:450000,                 // Overtake Mode deploy limit (vs 350 kW)
   rollC:0.012, kinetic:0.93,
   steerMax:0.34, steerFade:26,
   assistAlign:0.32,              // 0..1 front-slip relaxation (auto countersteer)
@@ -189,18 +191,21 @@ function buildTrack(def){
   for(let i=0;i<N;i++)if(Math.abs(K[i])>0.0075)for(let o=-8;o<=8;o++)kerb[(i+o+N)%N]=1;
   let sBrake=450,found=0;
   for(let i=5;i<N;i++){if(Math.abs(K[i])>0.010){found++;if(found>=4){sBrake=(i-4)*ds;break;}}else found=0;}
-  let sExit=LAP_TARGET-400;found=0;
-  for(let i=N-5;i>0;i--){if(Math.abs(K[i])>0.010){found++;if(found>=4){sExit=(i+4)*ds;break;}}else found=0;}
-  const drsA=sExit+20,drsB=Math.max(60,sBrake-60);
+  // distance (m) from each sample to the next corner ahead — the 2026 active
+  // aero switch reads this O(1) each physics step (Straight vs Corner Mode)
+  const cd=new Float32Array(N).fill(1e9);
+  {let d=1e9;
+   for(let i=2*N-1;i>=0;i--){
+     const ii=i%N;
+     if(Math.abs(K[ii])>0.008)d=0;else d+=ds;
+     if(d<cd[ii])cd[ii]=d;
+   }}
   // map-anchor lookup (px coords of the official map -> nearest sample)
   function nearIdx(px,py){
     const x=px*sc,y=py*sc;let bi=0,bd2=1e18;
     for(let i=0;i<N;i++){const d=(TX[i]-x)**2+(TY[i]-y)**2;if(d<bd2){bd2=d;bi=i;}}
     return bi;
   }
-  // extra DRS zones from def anchors (zone 1 = the wrap-around pit straight)
-  const zones=(def.zonesS||[]).map(z=>z.slice()) // extra DRS zones given directly in meters
-    .concat((def.zoneAnchors||[]).map(([a,b])=>[nearIdx(a[0],a[1])*ds,nearIdx(b[0],b[1])*ds]));
   const tunnel=def.tunnel?[nearIdx(def.tunnel[0][0],def.tunnel[0][1])*ds,
                           nearIdx(def.tunnel[1][0],def.tunnel[1][1])*ds]:null;
   const quay=def.quay?[nearIdx(def.quay[0][0],def.quay[0][1])*ds,
@@ -238,7 +243,7 @@ function buildTrack(def){
   for(let i=0;i<N;i++){minx=Math.min(minx,TX[i]);maxx=Math.max(maxx,TX[i]);
     miny=Math.min(miny,TY[i]);maxy=Math.max(maxy,TY[i]);}
   return {n:N,ds,length:LAP_TARGET,X:TX,Y:TY,E:TE,NX,NY,TH,K,kerb,
-    LX:LXa,LY:LYa,RX:RXa,RY:RYa,drsA,drsB,zones,tunnel,nearIdx,
+    LX:LXa,LY:LYa,RX:RXa,RY:RYa,cd,tunnel,nearIdx,
     sBrake,CPS,spans,gravelMask,trapType,minx,miny,maxx,maxy,
     id:def.id,tag:def.tag,name:def.name,style:def.style,scn:def.scenery||{},scMap:sc,
     walled:!!def.walled,ground:def.ground,quay,tabacI};
@@ -246,11 +251,6 @@ function buildTrack(def){
 const TRACK_IDS=Object.keys(TRACKS);let curTrackKey=TRACK_IDS[0];
 if(TRACKS[curTrackKey].pMod)Object.assign(P,TRACKS[curTrackKey].pMod); // per-track physics tune
 let track=buildTrack(TRACKS[curTrackKey]);
-function inDRSZone(s){
-  if(s>track.drsA||s<track.drsB)return true;   // wrap-around main straight
-  for(const z of track.zones)if(s>z[0]&&s<z[1])return true;
-  return false;
-}
 
 function trackQuery(x,y,car){
   const N=track.n;let best=car.tIdx,bd=1e18;
@@ -479,8 +479,6 @@ function buildScenery(T){
           (ii>>2)&1?[196,50,44]:[228,226,220],f));
       }
     }
-    board(Math.round((T.drsA+10)/T.ds),[31,143,74],1.8);
-    for(const z of T.zones)board(Math.round(z[0]/T.ds)+3,[31,143,74],1.8);
     board(Math.round((T.sBrake-100)/T.ds),[220,215,205]);
     if(T.id==='rbr'){
     board(T.nearIdx(205,258),[220,215,205]);
@@ -560,8 +558,14 @@ const car={
   tIdx:0,s:0,prevS:0,elev:0,lat:0,grass:false,kerb:false,gravel:false,
   slideF:0,slideR:0,utilF:{x:0,y:0},utilR:{x:0,y:0},
   alphaF:0,alphaR:0,FzF:0,FzR:0,delta:0,
-  drsOpen:false,drsFlap:0,reverse:false,revT:0,lapValid:true,nanEvents:0,
+  reverse:false,revT:0,lapValid:true,nanEvents:0,
   ersE:8.5e6,ersMode:0,ersFlow:0, // battery J, 0 idle / 1 deploy / 2 harvest
+  // 2026 active aero: aeroOpen 1 = Straight Mode (wings trimmed), 0 = Corner
+  // Mode (wings loaded). Automatic. wingFlap is the smoothed render angle.
+  aeroOpen:0,wingFlap:0,
+  // Overtake Mode: player-triggered extra deploy. otAvail = armed (within 1 s
+  // of the virtual rival at the line), otActive = engaged, otLap = lap it dies.
+  otAvail:false,otActive:false,otLap:-1,
   rollV:0,pitchV:0,bounce:0,spinF:0,spinR:0,
   kerbShake:0,susF:0,susVelF:0,susR:0,susVelR:0,fastT:-10,
 };
@@ -573,6 +577,7 @@ function placeCarAtS(s){
   car.kerbShake=0;car.susF=0;car.susVelF=0;car.susR=0;car.susVelR=0;car.bounce=0;
   car.reverse=false;car.elev=track.E[i];
   car.ersE=P.ersCap;car.ersMode=0;car.ersFlow=0; // fresh battery (lap invalidates anyway)
+  car.aeroOpen=0;car.wingFlap=0;car.otAvail=false;car.otActive=false;car.otLap=-1;
   camSnap=true; // jump the camera behind the car instead of flying across the map
 }
 let camSnap=false;
@@ -615,7 +620,15 @@ function lapLogic(prevS,s,lat){
           try{localStorage.setItem('rbr2_best_'+track.id,String(t));}catch(e){}
         }else msg('LAP '+fmtTime(t)+'  (+'+(t-timing.best).toFixed(3)+')','#ffd75e');
       }else msg('LAP INVALID — missed checkpoint','#ff6b60');
+      // Overtake Mode detection point = the S/F line. Arm for the NEXT lap if
+      // this lap finished within 1.0 s of the virtual rival (the best-lap
+      // ghost) — i.e. you're within a second of the car ahead.
+      if(timing.best!=null&&t-timing.best<1.0&&t-timing.best>-30){
+        car.otAvail=true;msg('OVERTAKE MODE AVAILABLE — press SHIFT','#8fd0ff');
+      }else car.otAvail=false;
     }
+    // a new lap begins: any active boost from the previous lap expires here
+    if(car.otActive){car.otActive=false;car.otLap=-1;}
     timing.lapActive=true;timing.lapStart=simT;timing.lapN++;timing.cp=0;car.lapValid=true;
   }else if(d>L/2){timing.lapActive=false;timing.cp=0;}
   else if(d>0){
@@ -625,7 +638,7 @@ function lapLogic(prevS,s,lat){
   }
 }
 
-const key={up:false,down:false,left:false,right:false,shift:false};
+const key={up:false,down:false,left:false,right:false};
 let paused=false,showTelemetry=false,helpShown=false,camMode=0; // 0 chase 1 T-cam 2 cockpit
 const CAM_NAMES=['CHASE CAM','T-CAM','COCKPIT CAM'];
 const helpEl=document.getElementById('help');
@@ -653,6 +666,15 @@ function actTelemetry(){showTelemetry=!showTelemetry;}
 function actCamera(){camMode=(camMode+1)%3;msg(CAM_NAMES[camMode],'#8fd0ff');}
 function actTrack(){const cur=TRACK_IDS.indexOf(curTrackKey);switchTrack(TRACK_IDS[(cur+1)%TRACK_IDS.length]);}
 function actAudio(){SND.init();SND.resume();msg(SND.toggleMute()?'AUDIO MUTED':'AUDIO ON','#8fd0ff');}
+// Overtake Mode: player-triggered. Only fires when armed (within 1 s of the
+// rival at the line) and the battery has meaningful charge to spend.
+function actOvertake(){
+  if(car.otActive)return;
+  if(!car.otAvail){msg('OVERTAKE NOT AVAILABLE','#ff8a80');return;}
+  if(car.ersE<P.ersCap*0.1){msg('OVERTAKE — BATTERY TOO LOW','#ff8a80');return;}
+  car.otActive=true;car.otAvail=false;car.otLap=timing.lapN; // dies at the next line
+  msg('OVERTAKE MODE ENGAGED','#ffd75e');
+}
 function setKey(e,v){
   let used=true;
   switch(e.key){
@@ -660,13 +682,13 @@ function setKey(e,v){
     case'ArrowDown':case's':case'S':key.down=v;break;
     case'ArrowLeft':case'a':case'A':key.left=v;break;
     case'ArrowRight':case'd':case'D':key.right=v;break;
-    case'Shift':key.shift=v;break;
     default:used=false;
   }
   if(v){
     SND.init();SND.resume();               // audio must start inside a user gesture
     dismissHelp();
     const k=e.key.toLowerCase();
+    if(e.key==='Shift')actOvertake();      // Overtake Mode (edge-triggered)
     if(k==='r')actReset();
     if(k==='p')actPause();
     if(k==='t')actTelemetry();
@@ -731,12 +753,19 @@ function step(dt,surf){
   car.delta=delta;
 
   const qd=0.5*P.rho*sp*sp;
-  const inZone=surf?!!surf.drs:inDRSZone(q.s);
-  car.drsOpen=key.shift&&inZone&&car.vx>27&&car.brake<0.05&&!car.reverse;
-  car.drsFlap+=((car.drsOpen?1:0)-car.drsFlap)*Math.min(1,dt*10); // flap animation
-  const drag=P.CdA*(car.drsOpen?P.drsDrag:1)*qd;
-  const DFf=P.ClA*P.aeroBalance*qd;
-  const DFr=P.ClA*(1-P.aeroBalance)*qd*(car.drsOpen?P.drsDF:1);
+  // 2026 active aero — automatic, on ALL straights. Wings trim to Straight
+  // Mode when the next corner is far enough away and we're quick and settled;
+  // they load back to Corner Mode approaching the turn. Both wings move
+  // together, so aeroDF trims front + rear equally (aero balance preserved).
+  const distNext=surf?(surf.cd!==undefined?surf.cd:1e9):track.cd[q.idx];
+  const wantOpen=distNext>90&&car.vx>30&&car.brake<0.05&&!car.reverse?1:0;
+  car.aeroOpen=wantOpen;
+  car.wingFlap+=(wantOpen-car.wingFlap)*Math.min(1,dt*6); // smoothed render + force blend
+  const aeroT=car.wingFlap;
+  const drag=P.CdA*(1-(1-P.aeroDrag)*aeroT)*qd;          // less drag as wings open
+  const dfScale=1-(1-P.aeroDF)*aeroT;                    // less downforce as wings open
+  const DFf=P.ClA*P.aeroBalance*qd*dfScale;
+  const DFr=P.ClA*(1-P.aeroBalance)*qd*dfScale;
 
   const trans=P.mass*car.axS*P.hCG/P.wheelbase;
   const FzF=Math.max(150,P.mass*9.81*P.weightFront+DFf-trans);
@@ -755,13 +784,15 @@ function step(dt,surf){
   car.ersMode=0;car.ersFlow=0;
   if(!car.reverse){
     let pwr=P.icePower;
+    // Overtake Mode raises the deploy ceiling (350 -> 450 kW) for the boost
+    const deployMax=car.otActive?P.ersPowerOT:P.ersPower;
     if(car.throttle>0.5&&sp>22&&car.ersE>0){
-      const taper=clamp((97-sp)/14,0,1);        // 350 kW -> 0 between ~300-350 km/h
-      const pe=Math.min(P.ersPower*taper,car.ersE/dt);
+      const taper=clamp((97-sp)/14,0,1);        // deploy -> 0 between ~300-350 km/h
+      const pe=Math.min(deployMax*taper,car.ersE/dt);
       if(pe>1000){
         pwr+=pe;
         car.ersE=Math.max(0,car.ersE-pe*car.throttle*dt);
-        car.ersMode=1;car.ersFlow=pe*car.throttle;
+        car.ersMode=car.otActive?3:1;car.ersFlow=pe*car.throttle; // 3 = overtake boost
       }
     }
     driveF=car.throttle*Math.min(P.maxDriveForce,pwr/Math.max(sp,6));
@@ -1117,19 +1148,19 @@ const WHEELS=[ // F1 spec: equal diameter front/rear, wide rears standing proud
   for(const s of[-1,1])
     dq([[0.85,0.84,s*0.52],[0.85,0.84,s*0.66],[0.83,0.93,s*0.66],[0.83,0.93,s*0.52]],C_RED);
   // --- front wing: 3 swept elements + endplates (black, 2022 style) ---
-  const fwEl=(y,chord,lead)=>{
+  const fwEl=(y,chord,lead,tag)=>{
     for(const s of[-1,1])
-      dq([[lead,y,0],[lead-0.15,y+0.03,s*0.94],[lead-0.15-chord,y+0.07,s*0.94],[lead-chord,y+0.04,0]],C_BLACK);
+      dq([[lead,y,0],[lead-0.15,y+0.03,s*0.94],[lead-0.15-chord,y+0.07,s*0.94],[lead-chord,y+0.04,0]],C_BLACK,tag);
   };
-  fwEl(0.07,0.50,3.12);fwEl(0.14,0.40,3.02);fwEl(0.21,0.30,2.92);
+  fwEl(0.07,0.50,3.12);fwEl(0.14,0.40,3.02);fwEl(0.21,0.30,2.92,'fwflap'); // top element = active-aero flap
   for(const s of[-1,1])
     dq([[3.12,0.05,s*0.96],[2.55,0.05,s*0.96],[2.55,0.44,s*0.96],[3.12,0.30,s*0.96]],C_BLACK);
-  // --- rear wing: endplates + main + DRS flap + beam + pylon ---
+  // --- rear wing: endplates + main + active-aero flap + beam + pylon ---
   for(const s of[-1,1])
     dq([[-2.26,0.55,s*0.50],[-2.76,0.55,s*0.50],[-2.76,1.12,s*0.50],[-2.26,1.12,s*0.50]],C_BLACK);
   const rwq=(x0,y0,x1,y1,tag)=>dq([[x0,y0,-0.51],[x0,y0,0.51],[x1,y1,0.51],[x1,y1,-0.51]],C_BLACK,tag);
   rwq(-2.32,0.86,-2.62,0.94);          // main plane
-  rwq(-2.46,0.96,-2.72,1.08,'flap');   // DRS flap (animated)
+  rwq(-2.46,0.96,-2.72,1.08,'flap');   // active-aero flap (opens in Straight Mode)
   rwq(-2.34,0.60,-2.58,0.65);          // beam wing
   dq([[-2.42,0.45,0],[-2.42,0.86,0],[-2.55,0.86,0],[-2.55,0.45,0]],C_DARK);
   // --- suspension wishbones ---
@@ -1193,16 +1224,21 @@ function drawCarMesh(){
     const isWheel=part.tag&&part.tag[0]==='w';
     const isFrontW=part.tag==='wF';
     let vs=part.v;
-    if(part.tag==='flap'&&car.drsFlap>0.001){
-      const ang=car.drsFlap*0.95,hx=-2.72,hy=1.08;
+    // 2026 active aero: both wing flaps rotate open together as wingFlap->1
+    // (Straight Mode). Rear flap hinges at its trailing top; front flap at
+    // its leading edge, opening downward — mirror-image motion, one control.
+    if(part.tag==='flap'&&car.wingFlap>0.001){
+      const ang=car.wingFlap*0.95,hx=-2.72,hy=1.08;
       const ca=Math.cos(ang),sa=Math.sin(ang);
-      vs=vs.map(([lx,ly,lz])=>{
-        const dx=lx-hx,dy=ly-hy;
-        return[hx+dx*ca+dy*sa,hy-dx*sa+dy*ca,lz];
-      });
+      vs=vs.map(([lx,ly,lz])=>{const dx=lx-hx,dy=ly-hy;
+        return[hx+dx*ca+dy*sa,hy-dx*sa+dy*ca,lz];});
+    }else if(part.tag==='fwflap'&&car.wingFlap>0.001){
+      const ang=car.wingFlap*0.5,hx=2.92,hy=0.21;
+      const ca=Math.cos(ang),sa=Math.sin(ang);
+      vs=vs.map(([lx,ly,lz])=>{const dx=lx-hx,dy=ly-hy;
+        return[hx+dx*ca-dy*sa,hy+dx*sa+dy*ca,lz];});
     }
-    const col=(part.tag==='flap'&&car.drsFlap>0.5)?[47,170,95]:part.col;
-    pushFace(vs.map(([lx,ly,lz])=>toWorld(lx,ly,lz,isWheel,isFrontW)),col);
+    pushFace(vs.map(([lx,ly,lz])=>toWorld(lx,ly,lz,isWheel,isFrontW)),part.col);
   }
   // ---- wheels, rebuilt every frame so the WHOLE tire rotates ----
   // 3D barrel profile (rounded shoulders), alternating tread shades spinning
@@ -1597,13 +1633,6 @@ function drawSeg(i,z,t){
     ctx.moveTo(pp[0][0],pp[0][1]);ctx.lineTo(pp[1][0],pp[1][1]);
     ctx.moveTo(pp[2][0],pp[2][1]);ctx.lineTo(pp[3][0],pp[3][1]);
     ctx.stroke();
-    if(inDRSZone(i*T.ds)&&(i&2)===0){
-      ctx.strokeStyle=`rgba(60,220,110,${(0.85*(1-t)).toFixed(2)})`;
-      ctx.lineWidth=clamp(0.3*FL/z,0.6,4);
-      ctx.beginPath();
-      ctx.moveTo(pp[0][0],pp[0][1]);ctx.lineTo(pp[1][0],pp[1][1]);
-      ctx.stroke();
-    }
   }
   if(i%25===0&&t<0.85){
     for(const side of[-1,1]){
@@ -1804,11 +1833,12 @@ function drawHUD(sp){
     ctx.fillStyle='#8fa1b5';ctx.font='700 10px ui-monospace,monospace';
     ctx.fillText('ERS',bx+2,by-102);
     ctx.fillStyle='#1c2532';ctx.fillRect(bx+30,by-110,150,9);
-    ctx.fillStyle=ersF<0.15?'#ff5a4f':car.ersMode===1?'#ffd75e':car.ersMode===2?'#37d67a':'#4fa3ff';
+    ctx.fillStyle=ersF<0.15?'#ff5a4f':car.ersMode===3?'#ff8f3a':car.ersMode===1?'#ffd75e':car.ersMode===2?'#37d67a':'#4fa3ff';
     ctx.fillRect(bx+30,by-110,150*ersF,9);
     ctx.fillStyle='#67788c';ctx.font='500 10px ui-monospace,monospace';
     ctx.fillText(Math.round(ersF*100)+'%',bx+186,by-102);
-    if(car.ersMode===1){ctx.fillStyle='#ffd75e';ctx.fillText('DEPLOY',bx+218,by-102);}
+    if(car.ersMode===3){ctx.fillStyle='#ff8f3a';ctx.fillText('BOOST',bx+218,by-102);}
+    else if(car.ersMode===1){ctx.fillStyle='#ffd75e';ctx.fillText('DEPLOY',bx+218,by-102);}
     else if(car.ersMode===2){ctx.fillStyle='#37d67a';ctx.fillText('CHARGE',bx+218,by-102);}
     else if(ersF<0.02){ctx.fillStyle='#ff5a4f';ctx.fillText('EMPTY',bx+218,by-102);}
   }
@@ -1823,13 +1853,17 @@ function drawHUD(sp){
   if(gear!=='R'){const lo=GEAR_KMH[gear-1],hi=gear<8?GEAR_KMH[gear]:356;rf=clamp((kmh-lo)/(hi-lo),0,1);}
   ctx.fillStyle='#1c2532';ctx.fillRect(bx+2,by-26,204,8);
   ctx.fillStyle=rf>0.92?'#ff5a4f':'#4fa3ff';ctx.fillRect(bx+2,by-26,204*rf,8);
-  const inZone=inDRSZone(car.s);
-  ctx.font='700 15px ui-monospace,Menlo,monospace';
-  if(car.drsOpen){ctx.fillStyle='#2fbf63';roundRectPath(bx+2,by-14,64,16,4);ctx.fill();
-    ctx.fillStyle='#04120a';ctx.fillText('DRS',bx+18,by-1);}
-  else if(inZone){ctx.strokeStyle='#2fbf63';ctx.lineWidth=1.5;roundRectPath(bx+2,by-14,64,16,4);ctx.stroke();
-    ctx.fillStyle='#2fbf63';ctx.fillText('DRS',bx+18,by-1);}
-  else{ctx.fillStyle='#3a4656';ctx.fillText('DRS',bx+18,by-1);}
+  // active-aero mode (automatic): STR = Straight Mode (wings open), COR = Corner
+  ctx.font='700 12px ui-monospace,Menlo,monospace';
+  const straight=car.wingFlap>0.5;
+  ctx.fillStyle=straight?'#4fd0ff':'#1c2532';roundRectPath(bx+2,by-14,36,16,4);ctx.fill();
+  ctx.fillStyle=straight?'#04121a':'#6f8296';ctx.fillText(straight?'STR':'COR',bx+8,by-1);
+  // Overtake Mode (player-triggered): dim = idle, outline = armed, filled = active
+  if(car.otActive){ctx.fillStyle='#ff8f3a';roundRectPath(bx+42,by-14,30,16,4);ctx.fill();
+    ctx.fillStyle='#1a0d04';ctx.fillText('OT',bx+50,by-1);}
+  else if(car.otAvail){ctx.strokeStyle='#ffd75e';ctx.lineWidth=1.5;roundRectPath(bx+42,by-14,30,16,4);ctx.stroke();
+    ctx.fillStyle='#ffd75e';ctx.fillText('OT',bx+50,by-1);}
+  else{ctx.fillStyle='#3a4656';ctx.fillText('OT',bx+50,by-1);}
   ctx.fillStyle='#1c2532';ctx.fillRect(bx+80,by-14,80,6);ctx.fillRect(bx+80,by-6,80,6);
   ctx.fillStyle='#37d67a';ctx.fillRect(bx+80,by-14,80*car.throttle,6);
   ctx.fillStyle='#ff5a4f';ctx.fillRect(bx+80,by-6,80*car.brake,6);
@@ -1874,10 +1908,11 @@ function drawHUD(sp){
   ctx.beginPath();
   for(let i=0;i<MM.pts.length;i++){const p=MM.pts[i];i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);}
   ctx.closePath();ctx.stroke();
-  ctx.strokeStyle='#2fbf63';ctx.lineWidth=3;ctx.beginPath();
+  // cyan overlay = Straight-Mode sections (wings open automatically)
+  ctx.strokeStyle='#4fd0ff';ctx.lineWidth=3;ctx.beginPath();
   let started=false;
   for(let i=0;i<track.n;i+=4){
-    if(inDRSZone(i*track.ds)){const x=track.X[i]*MM.s+MM.ox,y=track.Y[i]*MM.s+MM.oy;
+    if(track.cd[i]>90){const x=track.X[i]*MM.s+MM.ox,y=track.Y[i]*MM.s+MM.oy;
       started?ctx.lineTo(x,y):ctx.moveTo(x,y);started=true;}
     else if(started){ctx.stroke();ctx.beginPath();started=false;}
   }
@@ -1921,7 +1956,7 @@ function drawHUD(sp){
 }
 // clickable on-screen buttons (top-centre). Also registers hit-boxes for the mouse.
 function drawButtons(){
-  const defs=[['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset],
+  const defs=[['OVERTAKE',actOvertake],['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset],
     ['MENU',()=>{window.location.href='index.html#tracks';}]];
   if(TRACK_IDS.length>1)defs.push(['TRACK',actTrack]);
   const bw=64,bh=26,gap=6,total=defs.length*bw+(defs.length-1)*gap;
@@ -1932,11 +1967,15 @@ function drawButtons(){
   hudButtons=[];
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='700 12px ui-monospace,Menlo,monospace';
   for(const[label,act]of defs){
-    const active=(label==='PAUSE'&&paused)||(label==='AUDIO'&&SND.ready&&!SND.muted);
-    ctx.fillStyle=active?'rgba(47,150,90,0.85)':'rgba(8,12,18,0.72)';
+    const active=(label==='PAUSE'&&paused)||(label==='AUDIO'&&SND.ready&&!SND.muted)
+      ||(label==='OVERTAKE'&&car.otActive);
+    const armed=label==='OVERTAKE'&&car.otAvail&&!car.otActive;
+    ctx.fillStyle=label==='OVERTAKE'&&car.otActive?'rgba(255,143,58,0.9)'
+      :active?'rgba(47,150,90,0.85)':'rgba(8,12,18,0.72)';
     roundRectPath(x0,y0,bw,bh,7);ctx.fill();
-    ctx.strokeStyle='rgba(120,150,180,0.5)';ctx.lineWidth=1;roundRectPath(x0,y0,bw,bh,7);ctx.stroke();
-    ctx.fillStyle='#dfe6ee';ctx.fillText(label,x0+bw/2,y0+bh/2+1);
+    ctx.strokeStyle=armed?'rgba(255,215,94,0.95)':'rgba(120,150,180,0.5)';
+    ctx.lineWidth=armed?1.8:1;roundRectPath(x0,y0,bw,bh,7);ctx.stroke();
+    ctx.fillStyle=armed?'#ffd75e':'#dfe6ee';ctx.fillText(label,x0+bw/2,y0+bh/2+1);
     hudButtons.push({x:x0,y:y0,w:bw,h:bh,act});
     x0+=bw+gap;
   }
@@ -1965,7 +2004,9 @@ function drawTelemetry(){
     ['beta deg',(Math.atan2(car.vy,Math.max(Math.abs(car.vx),1))*57.3).toFixed(1)],
     ['s / lat',car.s.toFixed(0)+' / '+car.lat.toFixed(1)],
     ['surface',car.gravel?'GRAVEL':car.grass?'GRASS':(car.kerb?'KERB':'ASPHALT')],
-    ['ers MJ / kW',(car.ersE/1e6).toFixed(2)+' / '+(car.ersFlow/1000).toFixed(0)+(car.ersMode===2?' in':car.ersMode===1?' out':'')],
+    ['ers MJ / kW',(car.ersE/1e6).toFixed(2)+' / '+(car.ersFlow/1000).toFixed(0)+(car.ersMode===2?' in':car.ersMode?' out':'')],
+    ['active aero',car.wingFlap>0.5?'STRAIGHT (open)':'CORNER (closed)'],
+    ['overtake',car.otActive?'ACTIVE':car.otAvail?'ARMED':'—'],
     ['nan events',String(car.nanEvents)],
   ];
   ctx.fillStyle='rgba(8,12,18,0.8)';roundRectPath(14,H-24-rows.length*17-14,280,rows.length*17+14,8);ctx.fill();
@@ -2071,7 +2112,7 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
-window.SIM={car,track,P,timing,key,placeCarAtS,switchTrack,
+window.SIM={car,track,P,timing,key,placeCarAtS,switchTrack,actOvertake,
   get trackRef(){return track;},
   get sceneRef(){return scenery;},
   tick:(n,surf)=>{for(let i=0;i<n;i++)step(DT,surf);},

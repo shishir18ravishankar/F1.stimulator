@@ -14,7 +14,7 @@ const SIL_CTRL=[
   [535,547,22],[542,548,22],[550,544,22], // T4 The Loop
   [554,538,22],[572,488,21.8],
   [574,447,21.7],[564,433,21.6], // T5 Aintree
-  [495,370,21.2],[425,307,20.8],[356,245,20.3], // Wellington Straight (DRS)
+  [495,370,21.2],[425,307,20.8],[356,245,20.3], // Wellington Straight (straight)
   [287,182,20],[277,177,20],[265,175,20],
   [252,177,20],
   [238,183,20],[230,198,20.1],[222,251,20.7], // T6 Brooklands
@@ -32,7 +32,7 @@ const SIL_CTRL=[
   [659,582,24.2],
   [656,595,24.1],[645,608,24],[596,639,23.5], // T14 Chapel
   [585,649,23.4],
-  [543,726,22.7],[501,804,21.9],[459,881,21.2], // Hangar Straight (DRS)
+  [543,726,22.7],[501,804,21.9],[459,881,21.2], // Hangar Straight (straight)
   [417,958,20.5],[373,1026,19.7],[361,1042,19.4],
   [340,1057,18.9],[328,1060,18.7],[316,1059,18.6], // T15 Stowe
   [294,1052,18.2],[285,1044,18],[277,1033,18],
@@ -46,8 +46,7 @@ const SIL_CTRL=[
 const TRACKS={
   sil:{id:'sil',tag:'SIL',name:'SILVERSTONE',halfW:7.0,lap:5891,ctrl:SIL_CTRL,
     sf:[65,791],style:'flat',walled:false,traps:true,
-    zonesS:[[1400,1950],[4330,4850]],   // Wellington + Hangar straights
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[88,126,64],
     pMod:{ClA:3.45,yawDamp:3600},       // planted at high speed through Maggotts-Becketts
     // open, grassy, flat English countryside: sparse low trees, big stands

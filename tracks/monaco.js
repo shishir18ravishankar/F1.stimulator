@@ -32,7 +32,7 @@ const MONACO_CTRL=[
 const TRACKS={
   monaco:{id:'mco',tag:'MCO',name:'MONACO',halfW:5.2,lap:3337,ctrl:MONACO_CTRL,
     sf:[140,300],style:'city',walled:true,traps:false,
-    zoneAnchors:[],paved:[],
+    paved:[],
     tunnel:[[1122,402],[950,468]],      // Portier into the tunnel -> exit at the water
     quay:[[750,432],[300,300]],         // (unused now; harbour is the infield)
     tabac:[376,192],                    // a grandstand anchor near Tabac

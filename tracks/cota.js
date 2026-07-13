@@ -23,7 +23,7 @@ const COTA_CTRL=[
   [1060,71,4],
   [1060,64,4],[1055,61,3.9],[1048,60,3.8], // T11 hairpin (furthest point)
   [961,86,2.3],[874,113,0.9],
-  [798,131,0.6],[752,140,0.4],[706,150,0.2], // ~1.1 km back straight (DRS)
+  [798,131,0.6],[752,140,0.4],[706,150,0.2], // ~1.1 km back straight
   [651,158,0.1],[596,167,0.3],[509,177,0.6],
   [422,187,1],
   [419,194,1],[467,257,1.6],[483,282,1.9], // T12
@@ -43,8 +43,7 @@ const COTA_CTRL=[
 const TRACKS={
   cota:{id:'cota',tag:'COTA',name:'CIRCUIT OF THE AMERICAS',halfW:6.5,lap:5513,ctrl:COTA_CTRL,
     sf:[261,528],style:'flat',walled:false,traps:true,
-    zonesS:[[2330,3420]],              // back straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[112,114,60],               // sun-dried Texas grass
     atmo:{skyTop:'#6f9fd6',skyMid:'#c2d2de',skyBot:'#f0e6cf'},
     scenery:{treeDens:0.10,treeNear:28,treeSpread:65,treeH:4,treeHVar:3,

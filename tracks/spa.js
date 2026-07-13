@@ -13,7 +13,7 @@ const SPA_CTRL=[
   [470,286,51.5],[481,307,54.1],
   [491,351,58.5],[527,410,65.1],[563,469,71.8], // crest
   [575,496,74.7],
-  [598,574,81.1],[620,651,87.4],[642,729,93.7], // Kemmel Straight (DRS)
+  [598,574,81.1],[620,651,87.4],[642,729,93.7], // Kemmel Straight (straight)
   [665,806,100],[677,856,102.3],[676,863,102.6],
   [672,869,103],[654,883,101],[648,895,99.7], // T5-6 Les Combes (highest point)
   [659,949,94.8],[657,964,93.4],
@@ -46,8 +46,7 @@ const SPA_CTRL=[
 const TRACKS={
   spa:{id:'spa',tag:'SPA',name:'SPA-FRANCORCHAMPS',halfW:6.0,lap:7004,ctrl:SPA_CTRL,
     sf:[246,166],style:'forest',walled:false,traps:true,
-    zonesS:[[1180,2120]],              // Raidillon exit + Kemmel straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[42,84,40],
     pMod:{gripVar:0.035},               // forest track: subtle patchy grip
     atmo:{fog:[172,184,190],skyTop:'#7595bc',skyMid:'#b1c4d4',skyBot:'#dbe4e8'}, // Ardennes haze

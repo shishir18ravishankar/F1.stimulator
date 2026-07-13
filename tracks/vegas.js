@@ -6,7 +6,7 @@
 // Lane north past the Sphere, Sands Avenue west, then the ~1.9 km STRIP
 // straight south past the casinos, and Harmon Avenue home. Points [x,y,elev].
 // Key corners: the T1 stop off Koval, the T5-T9 loop past the Sphere, the
-// heavy T14 stop at the end of the Strip. Elevation: dead flat. DRS: 2 zones.
+// heavy T14 stop at the end of the Strip. Elevation: dead flat. Active aero: automatic Straight/Corner Mode.
 // Scenery: night city - casino neon, the glowing Sphere, the Strip's hotels.
 const LVG_CTRL=[
   [560,470,3],[558,400,3],                   // S/F on Koval Lane, heading north
@@ -31,8 +31,7 @@ const LVG_CTRL=[
 const TRACKS={
   lvg:{id:'lvg',tag:'LVG',name:'LAS VEGAS',halfW:6.4,lap:6201,ctrl:LVG_CTRL,
     sf:[560,470],style:'city',walled:true,traps:false,
-    zonesS:[[3050,4050]],               // the Strip
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[26,26,32],                  // night asphalt and parking lots
     pMod:{mu:1.48,CdA:1.36,ClA:2.60,kerbAggr:0.9}, // cold track, skinny wings, low grip
     atmo:{night:true,sun:false,skyTop:'#05060f',skyMid:'#0c0e24',skyBot:'#251b3a',fog:[36,32,52]},

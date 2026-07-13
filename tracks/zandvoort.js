@@ -7,7 +7,7 @@
 // constantly over the dunes; Scheivlak (T7) drops blind over a crest.
 // Key corners: Tarzan (T1), the 19-degree banked Hugenholtz (T3), the blind
 // Scheivlak drop (T7), the 18-degree banked Luyendyk finale (T14).
-// Elevation: rolling dunes plus two banked bowls. DRS: 2 zones.
+// Elevation: rolling dunes plus two banked bowls. Active aero: automatic Straight/Corner Mode.
 // Scenery: seaside - North Sea dune grass, the beach town beyond the pits.
 const ZAN_CTRL=[
   [220,302,6],[300,304,6],[400,308,6],       // S/F pit straight
@@ -29,14 +29,13 @@ const ZAN_CTRL=[
   [246,546,8.6],[226,548,8.8],[210,540,9],   // T12 right, out of the far dunes
   [196,526,9.2],
   [186,510,9.5],[184,494,9.8],               // T13 fast right onto the run home
-  [182,470,10],[180,404,9],                  // the back run (DRS)
+  [182,470,10],[180,404,9],                  // the back run (straight)
   [178,344,8],[182,324,7],[192,310,6.4],     // T14 Arie Luyendyk - the 18 deg
 ];                                           // banked slingshot onto the straight
 const TRACKS={
   zan:{id:'zan',tag:'ZAN',name:'ZANDVOORT',halfW:5.8,lap:4259,ctrl:ZAN_CTRL,
     sf:[220,302],style:'flat',walled:false,traps:true,
-    zonesS:[[3540,3800]],               // the T13-T14 back run
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[132,128,92],                // marram grass over sand
     pMod:{mu:1.66,ClA:3.40,kerbAggr:1.2,gripVar:0.02}, // banking grip approximated; blown sand off-line
     atmo:{skyTop:'#5e93c8',skyMid:'#b6cde0',skyBot:'#e8ecec',fog:[202,208,210]}, // North Sea light

@@ -4,9 +4,9 @@
 // valley floor, and you can see most of the lap from any grandstand.
 // Centerline traced from the real circuit's geometry (driven order from the
 // S/F line), so the plan view matches the official track map. Points are
-// [x,y,elev]. Two DRS zones; overtaking is famously hard - qualifying matters.
+// [x,y,elev]. active aero on the straights; overtaking is famously hard - qualifying matters.
 // Key corners: the wide downhill T1, the blind T4 crest, the T6-T7 chicane.
-// Elevation: hilly valley amphitheatre (~35 m). DRS: 2 zones.
+// Elevation: hilly valley amphitheatre (~35 m). Active aero: automatic Straight/Corner Mode.
 // Scenery: rural hills outside Budapest - dusty farmland, packed grass banks.
 const HUN_CTRL=[
   [200,200,20],[300,196,20],[400,192,20],    // S/F on the ridge (908 m straight)
@@ -35,8 +35,7 @@ const HUN_CTRL=[
 const TRACKS={
   hun:{id:'hun',tag:'HUN',name:'HUNGARORING',halfW:6.0,lap:4381,ctrl:HUN_CTRL,
     sf:[200,200],style:'flat',walled:false,traps:true,
-    zonesS:[[2700,3080]],               // the run out of the valley (zone 2 of 2)
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[98,124,60],                 // sun-dried Hungarian summer grass
     pMod:{ClA:3.50,steerMax:0.36,mu:1.56,gripVar:0.02}, // max downforce, dusty low-grip surface
     atmo:{skyTop:'#6f9cca',skyMid:'#c4d2da',skyBot:'#eee8d2',fog:[202,204,198]}, // August heat haze

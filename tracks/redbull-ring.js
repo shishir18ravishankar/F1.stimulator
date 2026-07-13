@@ -1,8 +1,8 @@
 // Digitized from the official F1 track map (clockwise, y-down = map view).
-// T1 Niki Lauda (right, uphill) -> long climb (DRS) -> T3 Remus hairpin ->
-// back straight (DRS, speed trap) -> T4 Schlossgold hairpin (highest point)
+// T1 Niki Lauda (right, uphill) -> long climb (straight) -> T3 Remus hairpin ->
+// back straight (speed trap) -> T4 Schlossgold hairpin (highest point)
 // -> downhill T5 -> T6/T7 left U (the only lefts) -> T8 kink -> Sector 3 run
-// -> fast T9 Rindt -> T10 onto the pit straight (DRS).
+// -> fast T9 Rindt -> T10 onto the pit straight.
 const RBR_CTRL=[
   [890,290,11],[820,358,10],[742,420,9.5],[664,478,9.5],[620,510,10], // pit straight (SW)
   [598,527,11],[577,530,12],[558,518,13.5],                          // T1 Niki Lauda
@@ -20,7 +20,6 @@ const RBR_CTRL=[
 const TRACKS={
   rbr:{id:'rbr',tag:'RBR',name:'RED BULL RING',halfW:6.5,lap:4318,ctrl:RBR_CTRL,
     sf:[742,420],style:'alpine',walled:false,traps:true,
-    zoneAnchors:[[[470,455],[195,254]],[[175,175],[508,72]]],
     paved:[[577,530],[884,124],[941,232]],
     ground:[56,106,48]},
 };

@@ -7,7 +7,7 @@
 // opening onto the 1.17 km back straight - the longest in F1 - and the T14
 // hairpin. Mostly flat (~8 m of camber-driven change around the snail).
 // Key corners: the Snail (T1-T3), the T11-T13 carousel, the T14 hairpin.
-// Elevation: mostly flat (~8 m around the snail). DRS: 2 zones.
+// Elevation: mostly flat (~8 m around the snail). Active aero: automatic Straight/Corner Mode.
 // Scenery: reclaimed marshland - twin mega-grandstands, paddock bridge towers.
 const SHA_CTRL=[
   [168,560,4],[168,505,4.6],[168,450,5.2],   // S/F pit straight heading north
@@ -33,7 +33,7 @@ const SHA_CTRL=[
   [636,490,2.9],[648,464,3.2],[670,446,3.5], // T12-T13 carousel: long right,
   [698,440,3.7],[726,446,3.8],[748,462,3.9], // double apex, mirror of the snail,
   [760,486,4.0],[764,510,4.0],               // opening onto the back straight
-  [764,600,3.4],[764,690,2.6],[764,780,1.8], // 1.17 km back straight (DRS),
+  [764,600,3.4],[764,690,2.6],[764,780,1.8], // 1.17 km back straight,
   [762,870,1.0],                             // the longest in F1
   [758,892,0.7],[746,904,0.5],[728,906,0.4], // T14 hairpin (R), the overtaking spot
   [714,898,0.3],
@@ -47,8 +47,7 @@ const SHA_CTRL=[
 const TRACKS={
   sha:{id:'sha',tag:'SHA',name:'SHANGHAI',halfW:6.8,lap:5451,ctrl:SHA_CTRL,
     sf:[168,560],style:'flat',walled:false,traps:true,
-    zonesS:[[2900,3580]],               // the 1.17 km back straight into T14
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[96,116,62],                 // reclaimed marshland scrub
     pMod:{mu:1.58,yawDamp:3350},        // long-radius corners reward stability
     atmo:{skyTop:'#7d9cbe',skyMid:'#c0ccd6',skyBot:'#e8e6dc',fog:[196,198,200]}, // Jiading haze

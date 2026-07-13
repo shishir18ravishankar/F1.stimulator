@@ -8,14 +8,14 @@
 // stadium section where the track threads the old baseball arena.
 // Key corners: the Esses (T7-T11), the Foro Sol stadium section (T13-T15),
 // the Peraltada half (T17). Elevation: flat park - but at 2,285 m altitude.
-// DRS: 3 zones on the real track (2 modelled here).
+// Active aero: automatic Straight/Corner Mode.
 // Scenery: city parkland - the stadium bowl, mountains behind the smog.
 const MEX_CTRL=[
   [270,561,4],[395,562,4],[520,564,4],       // S/F - the 1.2 km run to T1
   [580,566,4],[600,558,4],[606,542,4],       // T1 - deep braking, thin air
   [604,524,4],[610,510,4],                   // T2 - the S-jog
   [618,500,4],[618,484,4],                   // T3
-  [616,440,4],[614,396,4],                   // straight to T4 (DRS)
+  [616,440,4],[614,396,4],                   // straight to T4 (straight)
   [612,372,4],[602,358,4],[584,352,4],       // T4 - wide hairpin feel
   [560,348,4],[544,340,4],                   // T5
   [524,334,4],[508,336,4],                   // T6 (kink)
@@ -34,8 +34,7 @@ const MEX_CTRL=[
 const TRACKS={
   mex:{id:'mex',tag:'MEX',name:'MEXICO CITY',halfW:6.2,lap:4304,ctrl:MEX_CTRL,
     sf:[270,561],style:'park',walled:false,traps:true,
-    zonesS:[[1500,1790]],               // the T3-T4 straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[96,118,62],                 // Magdalena Mixhuca park grass
     pMod:{rho:0.785,ClA:3.55,mu:1.58,gripVar:0.015,brakeForce:32000}, // 2,285 m: thin air, hot brakes
     atmo:{skyTop:'#4f8fd0',skyMid:'#b8cbd8',skyBot:'#e8ddc8',fog:[196,196,188]}, // altitude light + haze

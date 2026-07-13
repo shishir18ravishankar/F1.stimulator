@@ -4,7 +4,7 @@
 // official track map. Narrow, walled street circuit; the identity is the night
 // setting: floodlights, lit skyline, dark harbour water. Points are [x,y,elev].
 const SGP_CTRL=[
-  [1038,306,5],[1026,206,5],[1014,106,5], // S/F pit straight (DRS)
+  [1038,306,5],[1026,206,5],[1014,106,5], // S/F pit straight
   [1010,100,5],[1001,96,5],[984,98,5], // T1 Sheares
   [970,94,5],[947,80,5],[932,61,5],
   [918,60,5],[909,69,5],[902,84,5], // T2-3
@@ -12,7 +12,7 @@ const SGP_CTRL=[
   [940,275,5],[940,314,5],
   [934,327,5],[923,334,5],[900,342,5], // T5 onto Raffles Blvd
   [816,337,5],[731,332,5],
-  [646,327,5],[626,323,5],[596,312,5], // Raffles Boulevard (DRS)
+  [646,327,5],[626,323,5],[596,312,5], // Raffles Boulevard (straight)
   [497,256,5],
   [399,199,5],[393,201,5],[387,211,5], // T7 Memorial
   [355,268,5],
@@ -29,7 +29,7 @@ const SGP_CTRL=[
   [316,361,5],[328,352,5],
   [344,351,5],[397,397,5],[450,444,5], // T14
   [468,452,5],[509,460,5],
-  [608,465,5],[708,470,5], // 2023-rebuilt straight (DRS)
+  [608,465,5],[708,470,5], // 2023-rebuilt straight
   [807,476,5],[810,500,5],[815,514,5], // T16
   [829,525,5],[937,538,5],[1019,542,5],
   [1024,540,5],[1053,496,5],[1060,478,5], // T18-19 onto the pit straight
@@ -38,8 +38,7 @@ const SGP_CTRL=[
 const TRACKS={
   sgp:{id:'sgp',tag:'SGP',name:'SINGAPORE',halfW:5.4,lap:4928,ctrl:SGP_CTRL,
     sf:[1038,306],style:'city',walled:true,traps:false,
-    zonesS:[[940,1630],[3820,4180]],   // Raffles Blvd + 2023-rebuilt straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[24,27,36],                 // floodlit night: everything off-road falls dark
     atmo:{night:true,sun:false,skyTop:'#05091a',skyMid:'#0c1330',skyBot:'#1b2547',fog:[34,42,66]},
     scenery:{floodlights:75,waterCol:[10,28,52],windowCol:[255,214,130],

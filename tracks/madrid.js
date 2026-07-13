@@ -6,7 +6,7 @@
 // [x,y,elev] with the park sector climbing ~14 m above the fairground side.
 // Key corners: the walled T1 stop, the park-sector climb, LA MONUMENTAL -
 // the 24% banked bowl onto the pit straight.
-// Elevation: ~14 m park climb plus the banking. DRS: 2 zones.
+// Elevation: ~14 m park climb plus the banking. Active aero: automatic Straight/Corner Mode.
 // Scenery: city - IFEMA fairground halls giving way to Valdebebas parkland.
 const MAD_CTRL=[
   [260,560,8.4],[340,562,8.2],[420,564,8],   // S/F - the ~1 km main straight
@@ -19,7 +19,7 @@ const MAD_CTRL=[
   [624,386,13.8],[644,380,14],[660,368,14.2],// T8 - opens into the park sector
   [668,348,15],[664,326,16],[672,304,17],    // T9-T10 - climbing esses
   [668,282,18],[656,266,18.6],[636,258,19.2],// T11 - the top hairpin-left
-  [596,248,20],[552,242,21],[508,240,21.6],  // the crest run (DRS)
+  [596,248,20],[552,242,21],[508,240,21.6],  // the crest run (straight)
   [464,242,22],[420,248,22.4],               // T12 (kink)
   [388,254,22.6],[368,264,22.4],             // T13 - fast left, downhill begins
   [330,282,21],[296,300,19.5],               // the park descent
@@ -35,8 +35,7 @@ const MAD_CTRL=[
 const TRACKS={
   mad:{id:'mad',tag:'MAD',name:'MADRID',halfW:6.2,lap:5474,ctrl:MAD_CTRL,
     sf:[260,560],style:'flat',walled:false,traps:true,
-    zonesS:[[2600,3050]],               // the crest run across the top
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[106,110,66],                // dry Castilian park grass
     pMod:{mu:1.63,ClA:3.35},            // banked-bowl grip approximated globally
     atmo:{skyTop:'#5f95cc',skyMid:'#c0cedb',skyBot:'#f2e8d2',fog:[204,204,196]}, // Madrid light

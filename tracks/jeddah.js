@@ -5,9 +5,9 @@
 // geometry (north = up, driven order from the S/F line), so the plan view
 // matches the official track map. Points are [x,y,elev]; the corniche is
 // dead flat. Signatures: the relentless T4-T12 high-speed esses between
-// walls, the 12-degree banked T13 at the north end, and three DRS zones.
+// walls, the 12-degree banked T13 at the north end, and active aero on the straights.
 // Key corners: the T4-T12 wall-lined esses, the 12-degree banked T13, T27 finale.
-// Elevation: dead flat seafront. DRS: 3 zones.
+// Elevation: dead flat seafront. Active aero: automatic Straight/Corner Mode.
 // Scenery: night-city seaside - Red Sea corniche, lagoon, floodlit towers.
 const JED_CTRL=[
   [300,700,2],[300,640,2],[300,560,2],       // S/F on the seafront straight
@@ -24,10 +24,10 @@ const JED_CTRL=[
   [252,108,2],[240,122,2],[238,138,2],       // left hairpin, unique in F1
   [244,156,2],
   [238,180,2],[246,204,2],[238,228,2],       // T14-T16 esses southbound
-  [232,252,2],[231,300,2],[230,348,2],       // the lagoon-side run (DRS) -
+  [232,252,2],[231,300,2],[230,348,2],       // the lagoon-side run (straight) -
   [229,396,2],[228,420,2],                   // gentle flat-out kinks
   [226,436,2],[218,452,2],[224,472,2],       // T22-T23 fast chicane
-  [222,500,2],[223,560,2],[224,620,2],       // corniche run south (DRS)
+  [222,500,2],[223,560,2],[224,620,2],       // corniche run south (straight)
   [225,668,2],
   [227,700,2],[232,730,2],[242,750,2],       // T27: the final hairpin around
   [260,762,2],[278,758,2],[292,742,2],       // the lagoon's tip, onto the
@@ -36,8 +36,7 @@ const JED_CTRL=[
 const TRACKS={
   jed:{id:'jed',tag:'JED',name:'JEDDAH',halfW:5.4,lap:6174,ctrl:JED_CTRL,
     sf:[300,700],style:'city',walled:true,traps:false,
-    zonesS:[[3800,4300],[4950,5440]],   // lagoon-side run + corniche run to T27
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[26,30,38],                  // floodlit night: dark beyond the walls
     atmo:{night:true,sun:false,skyTop:'#04070f',skyMid:'#0a1022',skyBot:'#182038',fog:[30,34,46]},
     scenery:{floodlights:65,waterCol:[8,26,48],windowCol:[255,224,150],

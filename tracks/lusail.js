@@ -7,7 +7,7 @@
 // [x,y,elev]; the desert is flat, the grip falls off sharply off-line.
 // Key corners: T1 braking from 330 km/h, the fast T5-T8 sweeper rhythm, the
 // long final T16 slinging cars onto the straight. Elevation: flat desert.
-// DRS: 1 zone (the main straight). Scenery: floodlit desert - dunes fading
+// Active aero: automatic Straight/Corner Mode. Scenery: floodlit desert - dunes fading
 // into Lusail's skyline glow.
 const LUS_CTRL=[
   [300,558,3],[380,561,3],[460,564,3],       // S/F - the 1.07 km main straight
@@ -41,8 +41,7 @@ const LUS_CTRL=[
 const TRACKS={
   lus:{id:'lus',tag:'LUS',name:'LUSAIL',halfW:6.2,lap:5419,ctrl:LUS_CTRL,
     sf:[300,558],style:'flat',walled:false,traps:true,
-    zonesS:[],                          // one DRS zone: the main straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[52,48,38],                  // floodlit desert scrub
     pMod:{ClA:3.50,mu:1.62,gripVar:0.025,yawDamp:3450}, // high-load flow; sand waits off-line
     atmo:{night:true,sun:false,skyTop:'#060a16',skyMid:'#0c1228',skyBot:'#1c2240',fog:[38,38,50]},

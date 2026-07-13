@@ -6,7 +6,7 @@
 // through T3 to Repsol, the drop to the valley, the blind Campsa crest onto
 // the downhill back straight, La Caixa, and the stadium section.
 // Key corners: Elf (T1), the blind Campsa crest (T9), La Caixa (T10).
-// Elevation: rolling (~30 m - climb to Repsol, drop to the valley). DRS: 2 zones.
+// Elevation: rolling (~30 m - climb to Repsol, drop to the valley). Active aero: automatic Straight/Corner Mode.
 // Scenery: Catalan countryside - dry wooded hills north of Barcelona.
 const BCN_CTRL=[
   [240,560,12],[320,562,12],[400,562,12],    // S/F - the 1.047 km main straight
@@ -24,7 +24,7 @@ const BCN_CTRL=[
   [404,426,18.5],[406,412,20.5],             // T8 flick
   [402,396,22.5],[390,386,24.5],[372,382,25.5],// T9 Campsa - blind over the
   [310,384,22],[250,388,17],[196,392,13],    // crest, then the downhill back
-  [166,396,12],[146,404,11.5],[138,418,11],  // straight (DRS) into T10 La
+  [166,396,12],[146,404,11.5],[138,418,11],  // straight into T10 La
   [142,432,11],[154,442,11],                 // Caixa - big braking, slow left
   [168,450,11.2],[178,460,11.5],             // T11 opens uphill
   [174,480,12],[166,494,12.4],[152,502,12.8],// T12 - the stadium section
@@ -35,8 +35,7 @@ const BCN_CTRL=[
 const TRACKS={
   bcn:{id:'bcn',tag:'BCN',name:'BARCELONA-CATALUNYA',halfW:6.5,lap:4657,ctrl:BCN_CTRL,
     sf:[240,560],style:'flat',walled:false,traps:true,
-    zonesS:[[3050,3550]],               // the downhill back straight into La Caixa
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[112,118,64],                // sun-dried Catalan scrub
     pMod:{yawDamp:3400,ClA:3.40},       // aero benchmark track: stability + downforce
     atmo:{skyTop:'#6b9bd0',skyMid:'#c2d2dc',skyBot:'#f0e8d0',fog:[198,202,198]}, // Spanish haze

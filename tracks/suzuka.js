@@ -6,7 +6,7 @@
 // through the Esses to Dunlop, down through Degner to the low hairpin road,
 // then the back straight rising to cross the bridge before 130R.
 // Key corners: the Esses (T3-T7), Degner (T8-T9), Spoon (T13-T14), 130R (T15).
-// Elevation: hilly (~40 m, figure-8 bridge crossover). DRS: 1 zone only.
+// Elevation: hilly (~40 m, figure-8 bridge crossover). Active aero: automatic Straight/Corner Mode.
 // Scenery: forested hills, with the Motopia amusement-park Ferris wheel.
 const SUZ_CTRL=[
   [470,544,10.5],[380,554,10.2],[300,564,10.0], // S/F pit straight heading west
@@ -46,8 +46,7 @@ const SUZ_CTRL=[
 const TRACKS={
   suz:{id:'suz',tag:'SUZ',name:'SUZUKA',halfW:6.0,lap:5807,ctrl:SUZ_CTRL,
     sf:[470,544],style:'flat',walled:false,traps:true,
-    zonesS:[],                          // one DRS zone only: the main straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[76,118,60],                 // Mie-prefecture countryside green
     pMod:{ClA:3.55,mu:1.60,yawDamp:3400}, // high-downforce, flowing, rhythm rewards commitment
     atmo:{skyTop:'#6f9fd0',skyMid:'#bad0e2',skyBot:'#eaeef0',fog:[186,196,202]},

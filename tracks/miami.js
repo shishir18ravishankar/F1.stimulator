@@ -4,9 +4,9 @@
 // official track map. Points are [x,y,elev], essentially flat. Character:
 // the fast flowing T4-T8 arc past the stadium campus, the fake-marina esses,
 // the awkward slow T11-T15 complex threading the turnpike ramps, and the
-// 1.28 km back straight into the T17 heavy-braking zone. Three DRS zones.
+// 1.28 km back straight into the T17 heavy-braking zone. active aero on the straights.
 // Key corners: the T4-T8 stadium arc, the T11-T15 turnpike complex, T17 stop.
-// Elevation: essentially flat (small ramp hop at T14-T15). DRS: 3 zones.
+// Elevation: essentially flat (small ramp hop at T14-T15). Active aero: automatic Straight/Corner Mode.
 // Scenery: stadium campus - Hard Rock Stadium, palms, the fake marina.
 const MIA_CTRL=[
   [900,204,3],[780,202,3],[660,200,3],       // S/F straight past the stadium
@@ -20,7 +20,7 @@ const MIA_CTRL=[
   [344,384,3],                               // T5 (kink)
   [366,392,3],[380,404,3],[376,420,3],       // T6-T7 - the fake-marina esses
   [382,436,3],[396,446,3],[418,450,3],       // T8 opens east
-  [470,454,3],[520,456,3],[570,458,3],       // the run to T11 (DRS)
+  [470,454,3],[520,456,3],[570,458,3],       // the run to T11 (straight)
   [600,460,3],[620,466,3],                   // T9 (kink)
   [636,476,3],[640,490,3],                   // T10 turns down
   [636,504,3],[624,510,3],[618,522,3],       // T11-T15: the tight, walled
@@ -28,7 +28,7 @@ const MIA_CTRL=[
   [634,560,3],[620,562,3],[612,572,3],       // ramps - first-gear stuff
   [618,584,3],[630,588,3],
   [650,592,3],[680,594,3],                   // T16 opens onto the
-  [760,598,3],[840,602,3],[920,606,3],       // 1.28 km back straight (DRS)
+  [760,598,3],[840,602,3],[920,606,3],       // 1.28 km back straight
   [960,608,3],
   [984,608,3],[998,600,3],[1002,586,3],      // T17 - hairpin braking, the
   [1000,566,3],[1004,552,3],                 // big overtaking spot; T18 kink
@@ -41,8 +41,7 @@ const MIA_CTRL=[
 const TRACKS={
   mia:{id:'mia',tag:'MIA',name:'MIAMI',halfW:6.2,lap:5412,ctrl:MIA_CTRL,
     sf:[900,204],style:'flat',walled:false,traps:true,
-    zonesS:[[2420,2820],[3560,4150]],   // T8-T9 run + back straight
-    zoneAnchors:[],paved:[],
+    paved:[],
     ground:[110,118,96],                // parched campus grass + concrete lots
     pMod:{mu:1.55,gripVar:0.02},        // hot, dusty, low-grip off line
     atmo:{skyTop:'#4f97dc',skyMid:'#a8cbe4',skyBot:'#f4ecd8',fog:[200,206,206]}, // Florida glare
