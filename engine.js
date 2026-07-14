@@ -42,19 +42,27 @@ const P={
   alphaMax:0.45,
   yawDamp:3200,                  // stronger than v2.0 — settles fast
   betaMax:1.05,
-  power:775000, maxDriveForce:11800, // total peak = icePower + ersPower
+  power:745000, maxDriveForce:11800, // total peak = icePower + ersPower
   // --- 2026 energy management (battery + MGU-K) ---
+  // Rebalanced so a normal lap's harvest ~= its deploy (no perpetual
+  // starvation). Deploy is a corner-exit punch that fades toward top speed
+  // (models "clipping"), so it doesn't drain the whole lap; the three harvest
+  // modes (brake / lift-and-coast / partial throttle) refill it, each rate-
+  // capped so recharge is never instant. Overtake boost deploys harder than
+  // normal, so repeated use still meaningfully depletes the battery.
   icePower:425000,                   // combustion-only pace when the battery is flat
-  ersPower:350000,                   // electric deploy, tapering out toward top speed
-  ersCap:8.5e6,                      // battery energy: 8.5 MJ (one lap of deployment)
-  ersHarvestBrake:350000,            // regen under braking (scales with pedal)
-  ersHarvestLift:80000,              // lift-and-coast harvest
-  ersHarvestPart:35000,              // part-throttle trickle harvest
+  ersPower:320000,                   // normal deploy peak (corner-exit punch)
+  ersDeployLo:50,                    // m/s (~180 km/h): full deploy at/below
+  ersDeployHi:82,                    // m/s (~295 km/h): deploy fades to 0 here
+  ersCap:8.5e6,                      // battery energy: 8.5 MJ
+  ersHarvestBrake:350000,            // MGU-K recovery cap under braking (x pedal)
+  ersHarvestLift:230000,             // lift-and-coast harvest
+  ersHarvestPart:170000,             // partial-throttle harvest
   brakeForce:34000, brakeBias:0.58, engineBrake:700,
   CdA:1.56, ClA:3.30, aeroBalance:0.44, rho:1.20,
   // 2026 active aero: Straight Mode trims BOTH wings (front+rear together)
   aeroDrag:0.80, aeroDF:0.72,
-  ersPowerOT:450000,                 // Overtake Mode deploy limit (vs 350 kW)
+  ersPowerOT:450000,                 // Overtake boost deploy (higher -> drains faster)
   rollC:0.012, kinetic:0.93,
   steerMax:0.34, steerFade:26,
   assistAlign:0.32,              // 0..1 front-slip relaxation (auto countersteer)
@@ -799,7 +807,9 @@ function step(dt,surf){
     // Overtake Mode raises the deploy ceiling (350 -> 450 kW) for the boost
     const deployMax=car.otActive?P.ersPowerOT:P.ersPower;
     if(car.throttle>0.5&&sp>22&&car.ersE>0){
-      const taper=clamp((97-sp)/14,0,1);        // deploy -> 0 between ~300-350 km/h
+      // deploy is strongest at corner-exit speeds and fades toward top speed,
+      // so straights don't drain the whole battery ("clipping")
+      const taper=clamp((P.ersDeployHi-sp)/(P.ersDeployHi-P.ersDeployLo),0,1);
       const pe=Math.min(deployMax*taper,car.ersE/dt);
       if(pe>1000){
         pwr+=pe;
