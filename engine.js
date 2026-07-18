@@ -647,14 +647,18 @@ function lapLogic(prevS,s,lat){
 }
 
 const key={up:false,down:false,left:false,right:false};
-// mobile/touch: primary pointer is coarse (phones/tablets). Desktop keeps the
-// keyboard path untouched. `?touch=1` / `?touch=0` force it on/off (handy on
-// touchscreen laptops and for testing) but the default is pure auto-detect.
+// mobile/touch: coarse primary pointer OR a touch-capable device with no
+// hover (phones/tablets in any browser). Desktop keeps the keyboard path
+// untouched. `?touch=1` / `?touch=0` force it on/off for testing. As a last
+// line of defence, the first real touch on the canvas upgrades to touch mode
+// at runtime (see the touchstart handler), so a misdetected phone can never
+// be stuck with the desktop layout.
 // touchSteerAxis is the analog steering-wheel input ([-1,1]); null = arrows/kbd.
-const TOUCH=(()=>{
+let TOUCH=(()=>{
   const q=new URLSearchParams(location.search).get('touch');
   if(q==='1'||q==='0')return q==='1';
-  return(matchMedia&&matchMedia('(pointer: coarse)').matches)||false;
+  if(matchMedia&&matchMedia('(pointer: coarse)').matches)return true;
+  return navigator.maxTouchPoints>0&&matchMedia&&!matchMedia('(hover: hover)').matches;
 })();
 let touchSteerAxis=null;
 let paused=false,showTelemetry=false,helpShown=false,camMode=0; // 0 chase 1 T-cam 2 cockpit
@@ -742,6 +746,9 @@ _canvasEl.addEventListener('mousedown',e=>{
 });
 _canvasEl.addEventListener('touchstart',e=>{
   SND.init();SND.resume();dismissHelp();
+  // safety net: a real touch on a page that detected as desktop means the
+  // detection was wrong — upgrade to the touch layout on the spot
+  if(!TOUCH){TOUCH=true;initTouchUI();}
   const t=e.changedTouches[0];const[px,py]=pointerAt(t.clientX,t.clientY);
   if(hudClick(px,py))e.preventDefault();
 },{passive:false});
@@ -1846,10 +1853,16 @@ function drawHUD(sp){
   let gear=1;
   for(let g=7;g>=0;g--)if(kmh>=GEAR_KMH[g]){gear=g+1;break;}
   if(car.reverse)gear='R';
-  // desktop: bottom-left. touch: bottom-CENTRE, clear of the steering control
-  // (bottom-left) and the pedals (bottom-right).
-  const bx=TOUCH?Math.round(W/2-126):22,by=H-24;
+  // desktop: bottom-left. touch landscape: bottom-CENTRE between the steering
+  // (left) and pedal (right) clusters. touch portrait: still centred but
+  // RAISED above the control clusters and scaled down so nothing overlaps.
+  const narrow=TOUCH&&W<620;
+  const ps=narrow?0.82:1;               // panel scale (about its bx,by anchor)
+  const bx=TOUCH?Math.round(W/2-126*ps):22;
+  const by=narrow?H-306:H-24;
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.save();
+  if(ps!==1){ctx.translate(bx,by);ctx.scale(ps,ps);ctx.translate(-bx,-by);}
   ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(bx-10,by-118,272,132,10);ctx.fill();
   // ERS battery gauge: level bar + state (yellow deploy / green harvest)
   {
@@ -1897,7 +1910,11 @@ function drawHUD(sp){
   ctx.fillText('[C] '+CAM_NAMES[camMode],bx+186,by-2);
   ctx.fillStyle=SND.ready&&!SND.muted?'#37d67a':'#67788c';
   ctx.fillText(SND.ready?(SND.muted?'[M] MUTED':'[M] ♪ AUDIO'):'[M] audio',bx+186,by-13);
+  ctx.restore(); // end speed/ERS panel scale
 
+  // lap timer box (top-left) — scaled down on narrow touch screens
+  ctx.save();
+  if(narrow)ctx.scale(0.74,0.74);
   ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(14,14,232,106,10);ctx.fill();
   const cur=timing.lapActive?simT-timing.lapStart:null;
   ctx.font='500 12px ui-monospace,Menlo,monospace';
@@ -1919,15 +1936,19 @@ function drawHUD(sp){
     ctx.fillStyle='#ff8a80';ctx.font='500 10px ui-monospace,monospace';
     ctx.fillText('INVALID',26+nCP*17+4,106);
   }
+  ctx.restore(); // end timer scale
 
-  const mx=W-MM.w-14,my=14;
-  ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(mx,my,MM.w,MM.h+16,10);ctx.fill();
+  // minimap (top-right) — scaled down on narrow touch screens so it and the
+  // timer box fit side by side without overlapping
+  const mmS=narrow?0.62:1;
+  const mx=W-MM.w*mmS-14,my=14;
+  ctx.save();ctx.translate(mx,my);ctx.scale(mmS,mmS);
+  ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(0,0,MM.w,MM.h+16,10);ctx.fill();
   ctx.fillStyle='#dfe6ee';ctx.font='700 11px ui-monospace,monospace';ctx.textAlign='left';
-  ctx.fillText(track.name,mx+10,my+MM.h+11);
+  ctx.fillText(track.name,10,MM.h+11);
   ctx.fillStyle='#67788c';ctx.textAlign='right';
-  ctx.fillText('[N] change',mx+MM.w-10,my+MM.h+11);
+  ctx.fillText('[N] change',MM.w-10,MM.h+11);
   ctx.textAlign='left';
-  ctx.save();ctx.translate(mx,my);
   ctx.strokeStyle='#55606e';ctx.lineWidth=3;ctx.lineJoin='round';
   ctx.beginPath();
   for(let i=0;i<MM.pts.length;i++){const p=MM.pts[i];i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);}
@@ -1957,10 +1978,10 @@ function drawHUD(sp){
 
   if((car.grass||car.gravel)&&Math.abs(car.vx)>3){
     ctx.fillStyle='#ffb35e';ctx.font='700 14px ui-monospace,monospace';
-    ctx.textAlign='center';ctx.fillText(car.gravel?'GRAVEL!':'OFF TRACK',W/2,TOUCH?H-150:H-46);ctx.textAlign='left';
+    ctx.textAlign='center';ctx.fillText(car.gravel?'GRAVEL!':'OFF TRACK',W/2,TOUCH?by-118*ps-16:H-46);ctx.textAlign='left';
   }
   ctx.textAlign='center';
-  let yy=64;
+  let yy=narrow?226:64; // narrow: below the timer/minimap/button stack
   for(const m of msgs){
     if(simT>m.until)continue;
     ctx.font='700 18px ui-monospace,Menlo,monospace';
@@ -1986,25 +2007,33 @@ function drawButtons(){
   const defs=[['OVERTAKE',actOvertake],['CAM',actCamera],['AUDIO',actAudio],['PAUSE',actPause],['RESET',actReset],
     ['MENU',()=>{window.location.href='index.html#tracks';}]];
   if(TRACK_IDS.length>1)defs.push(['TRACK',actTrack]);
-  const bw=64,bh=26,gap=6,total=defs.length*bw+(defs.length-1)*gap;
-  // top-centre, but never over the lap-timer (left) or minimap (right) boxes:
-  // on narrow windows the row drops just below the timer box instead
-  let x0=W/2-total/2,y0=12;
-  if(x0<254||x0+total>W-MM.w-22)y0=128;
+  const narrow=TOUCH&&W<620;
+  // narrow touch screens: 3x2 grid of bigger tap targets below the (scaled)
+  // timer + minimap. otherwise one top-centre row that never overlaps the
+  // timer (left) or minimap (right); on mid widths it drops below the timer.
+  const cols=narrow?3:defs.length;
+  const bw=narrow?Math.min(88,Math.floor((W-24-(cols-1)*6)/cols)):64,bh=narrow?30:26,gap=6;
+  const total=cols*bw+(cols-1)*gap;
+  let y0=narrow?138:12;   // below the scaled timer (h~89) and minimap (h~126)
+  if(!narrow){const xs=W/2-total/2;if(xs<254||xs+total>W-MM.w-22)y0=128;}
   hudButtons=[];
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='700 12px ui-monospace,Menlo,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=(narrow?'700 11px ':'700 12px ')+'ui-monospace,Menlo,monospace';
+  let i=0;
   for(const[label,act]of defs){
+    const col=i%cols,row=(i/cols)|0;
+    const x0=W/2-total/2+col*(bw+gap),yy=y0+row*(bh+gap);
     const active=(label==='PAUSE'&&paused)||(label==='AUDIO'&&SND.ready&&!SND.muted)
       ||(label==='OVERTAKE'&&car.otActive);
     const armed=label==='OVERTAKE'&&car.otAvail&&!car.otActive;
     ctx.fillStyle=label==='OVERTAKE'&&car.otActive?'rgba(255,143,58,0.9)'
       :active?'rgba(47,150,90,0.85)':'rgba(8,12,18,0.72)';
-    roundRectPath(x0,y0,bw,bh,7);ctx.fill();
+    roundRectPath(x0,yy,bw,bh,7);ctx.fill();
     ctx.strokeStyle=armed?'rgba(255,215,94,0.95)':'rgba(120,150,180,0.5)';
-    ctx.lineWidth=armed?1.8:1;roundRectPath(x0,y0,bw,bh,7);ctx.stroke();
-    ctx.fillStyle=armed?'#ffd75e':'#dfe6ee';ctx.fillText(label,x0+bw/2,y0+bh/2+1);
-    hudButtons.push({x:x0,y:y0,w:bw,h:bh,act});
-    x0+=bw+gap;
+    ctx.lineWidth=armed?1.8:1;roundRectPath(x0,yy,bw,bh,7);ctx.stroke();
+    ctx.fillStyle=armed?'#ffd75e':'#dfe6ee';ctx.fillText(label,x0+bw/2,yy+bh/2+1);
+    hudButtons.push({x:x0,y:yy,w:bw,h:bh,act});
+    i++;
   }
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
@@ -2121,7 +2150,6 @@ function audioTick(){
 msg('P — pause & controls','#8fd0ff'); // one-time hint instead of a blocking intro
 // fade the canvas in over the first frames so track load doesn't pop/flicker
 cv.style.opacity='0';cv.style.transition='opacity .35s ease';
-if(TOUCH)cv.style.touchAction='none'; // no scroll/zoom while driving on mobile
 let pauseFade=0;
 let last=performance.now(),acc=0;
 function frame(now){
@@ -2141,58 +2169,81 @@ function frame(now){
 requestAnimationFrame(frame);
 
 // =========================================================================
-// MOBILE TOUCH CONTROLS — injected only on coarse-pointer (phone/tablet).
-// Right: accelerator + brake pedals (stacked). Left: steering, switchable
-// between arrow buttons and a drag wheel (choice remembered). Desktop keeps
-// the keyboard path; these DOM controls set the same key.* / touchSteerAxis.
+// MOBILE TOUCH CONTROLS — injected on touch devices (or when a real touch is
+// seen at runtime). Right: pedal-shaped accelerator + brake pads with a
+// press-down feel. Left: steering, switchable between big arrow buttons and
+// a drag steering wheel (choice remembered). Desktop keeps the keyboard
+// path; these DOM controls feed the same key.* / touchSteerAxis inputs.
 // =========================================================================
-if(TOUCH){(function(){
+function initTouchUI(){
+  if(document.getElementById('tc'))return;   // idempotent (runtime upgrade path)
+  cv.style.touchAction='none';               // no scroll/zoom while driving
   const el=(t,c,html)=>{const n=document.createElement(t);if(c)n.className=c;if(html!=null)n.innerHTML=html;return n;};
   const style=document.createElement('style');
   style.textContent=`
   #tc{position:fixed;inset:0;z-index:30;pointer-events:none;touch-action:none;
     font:700 12px ui-monospace,Menlo,monospace;color:#cfd8e3;user-select:none;-webkit-user-select:none;}
   #tc *{pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
-  /* pedals fill the right column BELOW the minimap (top:200) so they never
-     overlap it, and shrink to fit on short landscape phones */
-  #tc .pedals{position:absolute;right:16px;top:200px;bottom:16px;width:94px;
-    display:flex;flex-direction:column;justify-content:flex-end;gap:10px;}
-  #tc .pedal{width:94px;height:min(116px,calc((100% - 10px)/2));min-height:72px;
-    border-radius:16px;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:5px;border:2px solid;backdrop-filter:blur(2px);
-    transition:transform .05s ease,background .06s ease;letter-spacing:1px;}
-  #tc .pedal .ico{font-size:26px;line-height:1;}
-  #tc .gas{background:rgba(30,140,66,.30);border-color:rgba(74,210,120,.85);color:#8ef0a8;}
-  #tc .brk{background:rgba(175,42,38,.30);border-color:rgba(240,110,100,.85);color:#ffa89f;}
-  #tc .gas.on{background:rgba(55,214,122,.62);color:#04120a;transform:scale(.93);}
-  #tc .brk.on{background:rgba(255,90,79,.62);color:#160404;transform:scale(.93);}
-  #tc .steer{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;
-    align-items:flex-start;gap:10px;}
-  #tc .toggle{padding:7px 11px;border-radius:9px;background:rgba(16,22,32,.72);
-    border:1.5px solid rgba(120,150,180,.55);color:#cfd8e3;font-size:11px;letter-spacing:.5px;}
-  #tc .toggle:active{background:rgba(40,60,84,.85);}
+  /* ---- pedals (right column, anchored bottom, kept below the minimap) ---- */
+  #tc .pedals{position:absolute;right:14px;top:210px;bottom:14px;width:104px;
+    display:flex;flex-direction:column;justify-content:flex-end;gap:14px;pointer-events:none;}
+  /* pedal pads: rounded-rect plates with tread grooves, raised until pressed */
+  #tc .pedal{position:relative;width:104px;height:min(128px,calc((100% - 14px)/2));
+    min-height:76px;border-radius:14px 14px 18px 18px;border:2px solid;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    padding-bottom:8px;letter-spacing:1.5px;font-size:12px;
+    box-shadow:0 6px 0 rgba(0,0,0,.5),0 10px 16px rgba(0,0,0,.38);
+    transition:transform .06s ease,box-shadow .06s ease,filter .06s ease;}
+  #tc .pedal::before{content:'';position:absolute;left:14px;right:14px;top:10px;bottom:30px;
+    border-radius:8px;border:1px solid rgba(255,255,255,.14);
+    background:repeating-linear-gradient(180deg,transparent 0 7px,rgba(255,255,255,.16) 7px 10px);}
+  #tc .gas{background:linear-gradient(180deg,rgba(34,120,62,.85),rgba(18,72,38,.85));
+    border-color:rgba(96,220,138,.9);color:#a6f2bc;}
+  #tc .brk{background:linear-gradient(180deg,rgba(150,44,38,.85),rgba(96,26,24,.85));
+    border-color:rgba(255,122,110,.9);color:#ffb9b0;}
+  /* press-down: pad sinks, shadow flattens, face brightens */
+  #tc .pedal.on{transform:translateY(5px);filter:brightness(1.45);
+    box-shadow:0 1px 0 rgba(0,0,0,.55),inset 0 3px 9px rgba(0,0,0,.55);}
+  /* ---- steering (left, anchored bottom) ---- */
+  #tc .steer{position:absolute;left:14px;bottom:14px;display:flex;flex-direction:column;
+    align-items:flex-start;gap:10px;pointer-events:none;}
+  #tc .toggle{padding:9px 13px;border-radius:10px;background:rgba(16,22,32,.8);
+    border:1.5px solid rgba(120,150,180,.6);color:#cfd8e3;font:700 11px ui-monospace,monospace;
+    letter-spacing:.5px;}
+  #tc .toggle:active{background:rgba(40,60,84,.9);}
   #tc .arrows{display:flex;gap:12px;}
-  #tc .arrow{width:80px;height:98px;border-radius:16px;background:rgba(16,22,32,.5);
-    border:2px solid rgba(120,150,180,.55);display:flex;align-items:center;justify-content:center;
-    font-size:38px;color:#dfe6ee;transition:transform .05s,background .06s;}
-  #tc .arrow.on{background:rgba(79,160,255,.55);border-color:#4fd0ff;color:#eaf6ff;transform:scale(.95);}
-  #tc .wheel{width:154px;height:154px;border-radius:50%;position:relative;
-    background:radial-gradient(circle at 50% 42%,rgba(64,74,88,.5),rgba(14,18,26,.72));
-    border:7px solid rgba(150,160,175,.78);box-shadow:0 6px 18px rgba(0,0,0,.4),inset 0 0 18px rgba(0,0,0,.5);
+  #tc .arrow{width:86px;height:104px;border-radius:16px;background:rgba(16,22,32,.55);
+    border:2px solid rgba(120,150,180,.6);display:flex;align-items:center;justify-content:center;
+    font-size:42px;color:#dfe6ee;box-shadow:0 5px 0 rgba(0,0,0,.45),0 8px 14px rgba(0,0,0,.3);
+    transition:transform .06s,background .06s,box-shadow .06s;}
+  #tc .arrow.on{background:rgba(79,160,255,.6);border-color:#4fd0ff;color:#eaf6ff;
+    transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.5),inset 0 3px 8px rgba(0,0,0,.45);}
+  #tc .wheel{width:150px;height:150px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 50% 42%,rgba(64,74,88,.55),rgba(14,18,26,.78));
+    border:8px solid rgba(150,160,175,.8);box-shadow:0 6px 18px rgba(0,0,0,.4),inset 0 0 18px rgba(0,0,0,.5);
     transition:transform .18s ease;}
   #tc .wheel.grab{transition:none;}
-  #tc .wheel .hub{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;
+  #tc .wheel .hub{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;
     border-radius:50%;background:rgba(20,26,36,.92);border:2px solid rgba(150,160,175,.5);}
-  #tc .wheel .spoke{position:absolute;left:50%;top:50%;height:6px;width:120px;margin:-3px 0 0 -60px;
+  #tc .wheel .spoke{position:absolute;left:50%;top:50%;height:6px;width:116px;margin:-3px 0 0 -58px;
     background:rgba(150,160,175,.5);transform-origin:50% 50%;border-radius:3px;}
+  #tc .wheel .mark{position:absolute;left:50%;top:6px;width:6px;height:16px;margin-left:-3px;
+    border-radius:3px;background:rgba(255,90,79,.9);}
+  /* short landscape phones: shrink so everything still fits vertically */
+  @media (max-height:480px){
+    #tc .wheel{width:126px;height:126px;}
+    #tc .wheel .spoke{width:96px;margin-left:-48px;}
+    #tc .arrow{width:76px;height:88px;font-size:36px;}
+    #tc .pedals{top:200px;}
+  }
   #tc .hidden{display:none!important;}`;
   document.head.appendChild(style);
 
   const root=el('div');root.id='tc';
   // --- pedals (right): accelerator on top, brake below ---
   const pedals=el('div','pedals');
-  const gas=el('div','pedal gas','<span class="ico">&#9650;</span><span>GAS</span>');
-  const brk=el('div','pedal brk','<span class="ico">&#9660;</span><span>BRAKE</span>');
+  const gas=el('div','pedal gas','<span>GAS</span>');
+  const brk=el('div','pedal brk','<span>BRAKE</span>');
   pedals.appendChild(gas);pedals.appendChild(brk);
   // --- steering (left): toggle + arrows or wheel ---
   const steer=el('div','steer');
@@ -2200,7 +2251,7 @@ if(TOUCH){(function(){
   const arrows=el('div','arrows');
   const aL=el('div','arrow','&lsaquo;'),aR=el('div','arrow','&rsaquo;');
   arrows.appendChild(aL);arrows.appendChild(aR);
-  const wheel=el('div','wheel','<div class="hub"></div>');
+  const wheel=el('div','wheel','<div class="hub"></div><div class="mark"></div>');
   for(let i=0;i<3;i++){const s=el('div','spoke');s.style.transform='rotate('+(i*60)+'deg)';wheel.appendChild(s);}
   steer.appendChild(toggle);steer.appendChild(arrows);steer.appendChild(wheel);
   root.appendChild(pedals);root.appendChild(steer);
@@ -2250,10 +2301,11 @@ if(TOUCH){(function(){
     styleMode=styleMode==='wheel'?'arrows':'wheel';applyStyle();});
   applyStyle();
   window.__touchUI={root,gas,brk,aL,aR,wheel,toggle,get style(){return styleMode;}}; // for verification
-})();}
+}
+if(TOUCH)initTouchUI();
 
 window.SIM={car,track,P,timing,key,placeCarAtS,switchTrack,actOvertake,
-  TOUCH,get touchSteerAxis(){return touchSteerAxis;},
+  get TOUCH(){return TOUCH;},get touchSteerAxis(){return touchSteerAxis;},
   get trackRef(){return track;},
   get sceneRef(){return scenery;},
   tick:(n,surf)=>{for(let i=0;i<n;i++)step(DT,surf);},
