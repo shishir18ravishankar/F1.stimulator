@@ -1968,12 +1968,20 @@ function drawHUD(sp){
   ctx.beginPath();ctx.arc(car.x*MM.s+MM.ox,car.y*MM.s+MM.oy,4,0,TAU);ctx.fill();
   ctx.restore();
 
-  // grip circles sit bottom-right — hidden on touch, where the pedals live there
-  if(!TOUCH){
-    const fx=W-150,fy=H-70;
-    ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(fx-52,fy-52,190,104,10);ctx.fill();
-    drawFC(fx,fy,'F',car.utilF,car.slideF);
-    drawFC(fx+84,fy,'R',car.utilR,car.slideR);
+  // tyre-grip friction circles, bottom-right (desktop only — on touch the
+  // pedals live there). Each dot = how much of that axle's grip is in use
+  // (sideways vs braking/drive); ring turns red when the axle slides.
+  // Skipped on windows too narrow to clear the speed panel.
+  if(!TOUCH&&W>=540){
+    const bw2=196,bh2=132,x0=W-bw2-14,y0=H-bh2-14;
+    ctx.fillStyle='rgba(8,12,18,0.72)';roundRectPath(x0,y0,bw2,bh2,10);ctx.fill();
+    ctx.fillStyle='#8fa1b5';ctx.font='700 11px ui-monospace,monospace';
+    ctx.fillText('TYRE GRIP',x0+12,y0+19);
+    ctx.fillStyle='#67788c';ctx.font='500 9px ui-monospace,monospace';
+    ctx.textAlign='right';ctx.fillText('red = sliding',x0+bw2-12,y0+19);ctx.textAlign='left';
+    const cy2=y0+72;
+    drawFC(x0+52,cy2,'FRONT',car.utilF,car.slideF);
+    drawFC(x0+144,cy2,'REAR',car.utilR,car.slideR);
   }
 
   if((car.grass||car.gravel)&&Math.abs(car.vx)>3){
@@ -2037,18 +2045,23 @@ function drawButtons(){
   }
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
+// one axle's friction circle: ring = 100% of available grip, dot = current
+// demand (x sideways, y braking/drive). Dot is clamped INSIDE the ring so it
+// can't spill out of the box; colour warns as the tyre nears the limit.
 function drawFC(cx,cy,label,util,slide){
-  const R=30;
-  ctx.strokeStyle=slide>0.03?'#ff5a4f':'#3a4656';ctx.lineWidth=2;
+  const R=26;
+  const sliding=slide>0.03;
+  ctx.strokeStyle=sliding?'#ff5a4f':'#3a4656';ctx.lineWidth=sliding?2.5:2;
   ctx.beginPath();ctx.arc(cx,cy,R,0,TAU);ctx.stroke();
   ctx.strokeStyle='#242e3c';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(cx-R,cy);ctx.lineTo(cx+R,cy);ctx.moveTo(cx,cy-R);ctx.lineTo(cx,cy+R);ctx.stroke();
-  const ux=clamp(util.x,-1.15,1.15),uy=clamp(-util.y,-1.15,1.15);
+  let ux=clamp(util.x,-1.3,1.3),uy=clamp(-util.y,-1.3,1.3);
   const m=Math.hypot(ux,uy);
+  if(m>1){ux/=m;uy/=m;} // saturated: pin the dot to the rim instead of overshooting
   ctx.fillStyle=m>0.98?'#ff5a4f':(m>0.8?'#ffd75e':'#37d67a');
   ctx.beginPath();ctx.arc(cx+ux*R,cy+uy*R,4.5,0,TAU);ctx.fill();
-  ctx.fillStyle='#8fa1b5';ctx.font='700 12px ui-monospace,monospace';
-  ctx.fillText(label,cx-4,cy+R+16);
+  ctx.fillStyle='#8fa1b5';ctx.font='700 10px ui-monospace,monospace';
+  ctx.textAlign='center';ctx.fillText(label,cx,cy+R+17);ctx.textAlign='left';
 }
 function drawTelemetry(){
   const rows=[
